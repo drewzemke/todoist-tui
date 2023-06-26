@@ -1,6 +1,6 @@
 {
   "full_sync": true,
-  "sync_token": "d7UuPMzvhnL1-487eAPgp7K2pgOo0zG9zZUPSn70TEAwfn6c2FqF6Ov9JOhGkdPoeu1b0r4k1me7mxbdVCQGO3VQbqXAKuKOcVbQ6WFzGZiKxHlKVx4",
+  "sync_token": "FIXTURE_SYNC_TOKEN",
   "temp_id_mapping": {},
   "user": {
     "auto_reminder": 0,
@@ -37,11 +37,11 @@
     "has_password": true,
     "id": "13743454",
     "image_id": "29cc127729f94c0ab4190eff57a6926c",
-    "inbox_project_id": "2157238630",
+    "inbox_project_id": "FIXTURE_INBOX_ID",
     "is_biz_admin": false,
     "is_premium": true,
     "joined_at": "2017-07-19T02:35:53.000000Z",
-    "karma": 59181.0,
+    "karma": 59185.0,
     "karma_disabled": 1,
     "karma_trend": "up",
     "lang": "en",
@@ -55,7 +55,7 @@
     "start_page": "filter?id=2337646092",
     "theme_id": "11",
     "time_format": 0,
-    "token": "this_is_a_fake_token",
+    "token": "FIXTURE_API_TOKEN",
     "tz_info": {
       "gmt_string": "-07:00",
       "hours": -7,
