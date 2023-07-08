@@ -8,7 +8,7 @@ pub struct SyncResponse {
     pub full_sync: bool,
 
     // TODO: make value type more specific?
-    pub sync_status: HashMap<String, String>,
+    pub sync_status: Option<HashMap<String, String>>,
 
     pub sync_token: String,
     pub temp_id_mapping: HashMap<Uuid, String>,
@@ -23,6 +23,14 @@ pub struct User {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AddItemSyncRequest {
+    pub sync_token: String,
+    pub resource_types: Vec<String>,
+    pub commands: Vec<AddItemSyncCommand>,
+}
+
+// they're the same, fine for now
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetUserSyncRequest {
     pub sync_token: String,
     pub resource_types: Vec<String>,
     pub commands: Vec<AddItemSyncCommand>,

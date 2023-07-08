@@ -10,7 +10,7 @@ Woo!
   - reads from fs
   - one api call
 
-- [ ] add a todo when user data doesn't exist (so we need to get it!)
+- [x] add a todo when user data doesn't exist (so we need to get it!)
   - reads from and writes to fs
   - two api calls
 
@@ -18,7 +18,14 @@ Woo!
 
 ### negative scenarios
 - [ ] invalid api key
+- [ ] cannot reach server
+- [ ] server returns error
+
+### refactors
+- [ ] move stuff out of `main.rs` and into `cli.rs` or something
+- [ ] refactor tests to be more module (specifically for mocking)
 
 ### other todos
+- [ ] add stricter clippy, including `unwrap` (replace `unwraps` with allowed `expects` in tests)
 - [ ] figure out how to organize tests so that we can select when to run/not run e2e's
 

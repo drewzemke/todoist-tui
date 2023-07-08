@@ -9,7 +9,8 @@ use std::{
     str::FromStr,
 };
 use todoist::sync::{
-    AddItemRequestArgs, AddItemSyncCommand, AddItemSyncRequest, SyncResponse, User,
+    AddItemRequestArgs, AddItemSyncCommand, AddItemSyncRequest, GetUserSyncRequest, SyncResponse,
+    User,
 };
 use uuid::Uuid;
 
@@ -51,7 +52,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let api_key = get_api_key(&data_dir)?;
-    let stored_user = get_stored_user_data(&data_dir)?;
+
+    // FIXME: probably want to split up the network/file responsibilities here
+    let stored_user = get_stored_user_data(&data_dir, &sync_url, &api_key).await?;
 
     if let Some(new_todo) = args.add_todo {
         let add_item_response = add_item(
@@ -82,12 +85,27 @@ fn get_api_key(data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
     Ok(config.api_key)
 }
 
-fn get_stored_user_data(data_dir: &PathBuf) -> Result<User, Box<dyn Error>> {
+async fn get_stored_user_data(
+    data_dir: &PathBuf,
+    sync_url: &String,
+    api_key: &String,
+) -> Result<User, Box<dyn Error>> {
     let user_storage_path = Path::new(data_dir).join("data").join("user.json");
 
-    let file = fs::read_to_string(user_storage_path)?;
-    let user = serde_json::from_str::<User>(&file)?;
-    Ok(user)
+    if !user_storage_path.exists() {
+        let user = get_user(sync_url, api_key).await?;
+        // store in file
+        println!("Storing user data in '{}'.", user_storage_path.display());
+        fs::create_dir_all(Path::new(data_dir).join("data"))?;
+        let mut file = fs::File::create(user_storage_path)?;
+        serde_json::to_writer_pretty(file, &user)?;
+
+        Ok(user)
+    } else {
+        let file = fs::read_to_string(user_storage_path)?;
+        let user = serde_json::from_str::<User>(&file)?;
+        Ok(user)
+    }
 }
 
 async fn add_item(
@@ -125,16 +143,19 @@ async fn add_item(
     Ok(resp)
 }
 
-pub async fn get_user(sync_url: String, api_key: String) -> Result<User, Box<dyn Error>> {
-    let mut map = HashMap::new();
-    map.insert("sync_token", "*");
-    map.insert("resource_types", "[\"user\"]");
+pub async fn get_user(sync_url: &String, api_key: &String) -> Result<User, Box<dyn Error>> {
+    print!("Fetching user data... ");
+    let mut request_body = GetUserSyncRequest {
+        sync_token: "*".to_string(),
+        resource_types: vec!["user".to_string()],
+        commands: vec![],
+    };
 
     let client = reqwest::Client::new();
     let resp = match client
         .post(sync_url)
         .header("Authorization", format!("Bearer {}", api_key))
-        .json(&map)
+        .json(&request_body)
         .send()
         .await
     {
@@ -142,6 +163,7 @@ pub async fn get_user(sync_url: String, api_key: String) -> Result<User, Box<dyn
         Err(err) => panic!("Error: {}", err),
     };
 
+    println!("done.");
     Ok(resp.user.unwrap())
 }
 
