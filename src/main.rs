@@ -1,4 +1,6 @@
 #![allow(unused)]
+use clap::Parser;
+use serde::Deserialize;
 use std::{
     collections::HashMap,
     error::Error,
@@ -6,9 +8,10 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
-
-use clap::Parser;
-use serde::Deserialize;
+use todoist::sync::{
+    AddItemRequestArgs, AddItemSyncCommand, AddItemSyncRequest, SyncResponse, User,
+};
+use uuid::Uuid;
 
 #[derive(Debug, Parser)]
 #[command(author)]
@@ -47,19 +50,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let api_key = get_api_key(data_dir)?;
-    println!("api key: {}", api_key);
+    let api_key = get_api_key(&data_dir)?;
+    let stored_user = get_stored_user_data(&data_dir)?;
 
-    let user = get_user(sync_url, api_key).await?;
-    println!("inbox id: {}", user.inbox_project_id);
+    if let Some(new_todo) = args.add_todo {
+        let add_item_response = add_item(
+            sync_url,
+            api_key,
+            stored_user.inbox_project_id,
+            new_todo.clone(),
+        )
+        .await;
 
+        if add_item_response.is_ok() {
+            println!("Todo '{}' added to inbox.", new_todo)
+        }
+    }
+
+    println!("Bye!");
     Ok(())
 }
 
-fn get_api_key(data_dir: PathBuf) -> Result<String, Box<dyn Error>> {
+fn get_api_key(data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
     let auth_file_name = "client_auth.toml";
 
-    let auth_path = Path::new(&data_dir).join(auth_file_name);
+    let auth_path = Path::new(data_dir).join(auth_file_name);
 
     let file = fs::read_to_string(auth_path)?;
     let config: Config = toml::from_str(file.as_str())?;
@@ -67,15 +82,47 @@ fn get_api_key(data_dir: PathBuf) -> Result<String, Box<dyn Error>> {
     Ok(config.api_key)
 }
 
-#[derive(Debug, Deserialize)]
-pub struct SyncResponse {
-    user: User,
+fn get_stored_user_data(data_dir: &PathBuf) -> Result<User, Box<dyn Error>> {
+    let user_storage_path = Path::new(data_dir).join("data").join("user.json");
+
+    let file = fs::read_to_string(user_storage_path)?;
+    let user = serde_json::from_str::<User>(&file)?;
+    Ok(user)
 }
 
-#[derive(Debug, Deserialize)]
-pub struct User {
-    full_name: String,
-    inbox_project_id: String,
+async fn add_item(
+    sync_url: String,
+    api_key: String,
+    project_id: String,
+    item: String,
+) -> Result<SyncResponse, Box<dyn Error>> {
+    let mut request_body = AddItemSyncRequest {
+        sync_token: "*".to_string(),
+        resource_types: vec![],
+        commands: vec![AddItemSyncCommand {
+            request_type: "item_add".to_string(),
+            args: AddItemRequestArgs {
+                project_id,
+                content: item,
+            },
+            temp_id: Uuid::new_v4(),
+            uuid: Uuid::new_v4(),
+        }],
+    };
+
+    let client = reqwest::Client::new();
+    let resp = match client
+        .post(sync_url)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .json(&request_body)
+        .send()
+        .await
+    {
+        Ok(resp) => resp.json::<SyncResponse>().await?,
+        Err(err) => panic!("Error: {}", err),
+    };
+
+    Ok(resp)
 }
 
 pub async fn get_user(sync_url: String, api_key: String) -> Result<User, Box<dyn Error>> {
@@ -95,7 +142,7 @@ pub async fn get_user(sync_url: String, api_key: String) -> Result<User, Box<dyn
         Err(err) => panic!("Error: {}", err),
     };
 
-    Ok(resp.user)
+    Ok(resp.user.unwrap())
 }
 
 pub async fn get_projects(api_key: String) {
