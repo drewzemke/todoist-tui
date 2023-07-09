@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct SyncResponse {
+pub struct Response {
     pub full_sync: bool,
 
     // TODO: make value type more specific?
@@ -22,22 +22,22 @@ pub struct User {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct AddItemSyncRequest {
+pub struct AddItemRequest {
     pub sync_token: String,
     pub resource_types: Vec<String>,
-    pub commands: Vec<AddItemSyncCommand>,
+    pub commands: Vec<AddItemCommand>,
 }
 
 // they're the same, fine for now
 #[derive(Debug, Serialize, Deserialize)]
-pub struct GetUserSyncRequest {
+pub struct GetUserRequest {
     pub sync_token: String,
     pub resource_types: Vec<String>,
-    pub commands: Vec<AddItemSyncCommand>,
+    pub commands: Vec<AddItemCommand>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct AddItemSyncCommand {
+pub struct AddItemCommand {
     #[serde(rename = "type")]
     pub request_type: String,
 

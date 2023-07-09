@@ -3,7 +3,7 @@ mod utils;
 #[cfg(test)]
 pub mod e2e {
     use crate::{
-        sync::{AddItemSyncRequest, GetUserSyncRequest, SyncResponse, User},
+        sync::{AddItemRequest, GetUserRequest, Response, User},
         tests::utils::{ApiMockBuilder, FsMockBuilder},
     };
     use assert_cmd::Command;
@@ -27,10 +27,10 @@ pub mod e2e {
         let mock_server = ApiMockBuilder::new()
             .await
             .mock_response(
-                |request: AddItemSyncRequest| {
+                |request: AddItemRequest| {
                     request.commands[0].args.project_id == "MOCK_INBOX_PROJECT_ID"
                 },
-                SyncResponse {
+                Response {
                     full_sync: true,
                     sync_status: None,
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
@@ -42,7 +42,8 @@ pub mod e2e {
         let server_url = mock_server.uri();
 
         // run the thing
-        let mut cmd = Command::cargo_bin("todoist").unwrap();
+        let mut cmd =
+            Command::cargo_bin("todoist").expect("could not run program using 'assert_cmd'");
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("--add").arg("new todo!");
@@ -65,13 +66,13 @@ pub mod e2e {
         let mock_server = ApiMockBuilder::new()
             .await
             .mock_response(
-                |request: GetUserSyncRequest| {
+                |request: GetUserRequest| {
                     request
                         .resource_types
                         .get(0)
                         .is_some_and(|resource| resource == "user")
                 },
-                SyncResponse {
+                Response {
                     full_sync: true,
                     sync_status: None,
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
@@ -84,13 +85,13 @@ pub mod e2e {
             )
             .await
             .mock_response(
-                |request: AddItemSyncRequest| {
+                |request: AddItemRequest| {
                     request
                         .commands
                         .get(0)
                         .is_some_and(|command| command.args.project_id == "MOCK_INBOX_PROJECT_ID")
                 },
-                SyncResponse {
+                Response {
                     full_sync: true,
                     sync_status: None,
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
