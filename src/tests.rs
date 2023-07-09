@@ -3,8 +3,6 @@ pub mod e2e {
     use assert_cmd::Command;
     use assert_fs::prelude::{FileTouch, FileWriteStr, PathChild};
     use std::collections::HashMap;
-    use std::fs;
-    use wiremock::matchers::method;
     use wiremock::{Mock, MockServer, Request, ResponseTemplate};
 
     use crate::sync::{AddItemSyncRequest, GetUserSyncRequest, SyncResponse, User};
@@ -158,37 +156,6 @@ pub mod e2e {
 
         // check that a file was created
         assert!(data_dir.join("data").join("user.json").exists());
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    #[ignore]
-    async fn mock_user_request() -> Result<(), Box<dyn std::error::Error>> {
-        // load fixture response from file
-        let user_response: SyncResponse = {
-            let path = "fixtures/user_response.json";
-            let file_contents = fs::read_to_string(path).expect("could not read from fixture");
-            serde_json::from_str(&file_contents).expect("could not parse fixture file into json")
-        };
-
-        // set up mock server
-        let mock_server = MockServer::start().await;
-        let server_url = mock_server.uri();
-
-        let template = ResponseTemplate::new(200).set_body_json(user_response);
-        Mock::given(method("POST"))
-            .respond_with(template)
-            .mount(&mock_server)
-            .await;
-
-        // run the thing
-        let mut cmd = Command::cargo_bin("todoist").unwrap();
-        cmd.arg("--sync-url").arg(server_url);
-
-        // check output
-        cmd.assert()
-            .stdout(predicates::str::contains("FIXTURE_INBOX_ID"));
 
         Ok(())
     }

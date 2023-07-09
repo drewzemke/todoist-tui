@@ -1,8 +1,6 @@
-#![allow(unused)]
 use clap::Parser;
 use serde::Deserialize;
 use std::{
-    collections::HashMap,
     error::Error,
     fs,
     path::{Path, PathBuf},
@@ -76,12 +74,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 fn get_api_key(data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
     let auth_file_name = "client_auth.toml";
-
     let auth_path = Path::new(data_dir).join(auth_file_name);
-
     let file = fs::read_to_string(auth_path)?;
     let config: Config = toml::from_str(file.as_str())?;
-
     Ok(config.api_key)
 }
 
@@ -97,7 +92,7 @@ async fn get_stored_user_data(
         // store in file
         println!("Storing user data in '{}'.", user_storage_path.display());
         fs::create_dir_all(Path::new(data_dir).join("data"))?;
-        let mut file = fs::File::create(user_storage_path)?;
+        let file = fs::File::create(user_storage_path)?;
         serde_json::to_writer_pretty(file, &user)?;
 
         Ok(user)
@@ -114,7 +109,7 @@ async fn add_item(
     project_id: String,
     item: String,
 ) -> Result<SyncResponse, Box<dyn Error>> {
-    let mut request_body = AddItemSyncRequest {
+    let request_body = AddItemSyncRequest {
         sync_token: "*".to_string(),
         resource_types: vec![],
         commands: vec![AddItemSyncCommand {
@@ -145,7 +140,7 @@ async fn add_item(
 
 pub async fn get_user(sync_url: &String, api_key: &String) -> Result<User, Box<dyn Error>> {
     print!("Fetching user data... ");
-    let mut request_body = GetUserSyncRequest {
+    let request_body = GetUserSyncRequest {
         sync_token: "*".to_string(),
         resource_types: vec!["user".to_string()],
         commands: vec![],
@@ -165,26 +160,4 @@ pub async fn get_user(sync_url: &String, api_key: &String) -> Result<User, Box<d
 
     println!("done.");
     Ok(resp.user.unwrap())
-}
-
-pub async fn get_projects(api_key: String) {
-    let sync_url = "https://api.todoist.com/sync/v9/sync";
-
-    let mut map = HashMap::new();
-    map.insert("sync_token", "*");
-    map.insert("resource_types", "[\"projects\"]");
-
-    let client = reqwest::Client::new();
-    let resp = match client
-        .post(sync_url)
-        .header("Authorization", format!("Bearer {}", api_key))
-        .json(&map)
-        .send()
-        .await
-    {
-        Ok(resp) => resp.text().await.unwrap(),
-        Err(err) => panic!("Error: {}", err),
-    };
-
-    println!("{}", resp);
 }

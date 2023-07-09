@@ -23,9 +23,21 @@ Woo!
 
 ### refactors
 - [ ] move stuff out of `main.rs` and into `cli.rs` or something
-- [ ] refactor tests to be more module (specifically for mocking)
+- [ ] refactor tests to be more modular (specifically for mocking)
 
 ### other todos
 - [ ] add stricter clippy, including `unwrap` (replace `unwraps` with allowed `expects` in tests)
 - [ ] figure out how to organize tests so that we can select when to run/not run e2e's
 
+---
+
+## Abstraction Ideas
+
+### `SyncClient`
+- responsible for making/returning requests
+- owns sync url
+- encapsulates reqwest logic
+
+### `FileManager`
+- owns data and config locations
+- resposible for reading/writing from both locations
