@@ -4,34 +4,24 @@ mod utils;
 pub mod e2e {
     use crate::{
         sync::{AddItemSyncRequest, GetUserSyncRequest, SyncResponse, User},
-        tests::utils::ApiMockBuilder,
+        tests::utils::{ApiMockBuilder, FsMockBuilder},
     };
     use assert_cmd::Command;
-    use assert_fs::prelude::{FileTouch, FileWriteStr, PathChild};
     use std::collections::HashMap;
 
     #[tokio::test]
     async fn add_to_inbox_when_user_data_exists() -> Result<(), Box<dyn std::error::Error>> {
         // create mock `client_auth.toml` and `data/user.json`
-        let mock_local_dir = assert_fs::TempDir::new().expect("could not create mock directory");
-        let data_dir = mock_local_dir.path();
-
-        let mock_client_config = mock_local_dir.child("client_auth.toml");
-        mock_client_config.touch().unwrap();
-        mock_client_config
-            .write_str("api_key = \"MOCK_API_KEY\"")
-            .unwrap();
-
-        let mock_user_storage = mock_local_dir.child("data/user.json");
-        mock_user_storage.touch().unwrap();
-        mock_user_storage
-            .write_str(
+        let mock_fs = FsMockBuilder::new()?
+            .mock_file_contents("client_auth.toml", "api_key = \"MOCK_API_KEY\"")?
+            .mock_file_contents(
+                "data/user.json",
                 r#"{
                     "full_name": "Drew",
                     "inbox_project_id": "MOCK_INBOX_PROJECT_ID"     
                 }"#,
-            )
-            .unwrap();
+            )?;
+        let mock_data_dir = mock_fs.path();
 
         // set up mock server
         let mock_server = ApiMockBuilder::new()
@@ -53,7 +43,7 @@ pub mod e2e {
 
         // run the thing
         let mut cmd = Command::cargo_bin("todoist").unwrap();
-        cmd.arg("--local-dir").arg(data_dir);
+        cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("--add").arg("new todo!");
 
@@ -67,14 +57,9 @@ pub mod e2e {
     #[tokio::test]
     async fn add_to_inbox_when_user_data_missing() -> Result<(), Box<dyn std::error::Error>> {
         // create mock `client_auth.toml`
-        let mock_local_dir = assert_fs::TempDir::new().expect("could not create mock directory");
-        let data_dir = mock_local_dir.path();
-
-        let mock_client_config = mock_local_dir.child("client_auth.toml");
-        mock_client_config.touch().unwrap();
-        mock_client_config
-            .write_str("api_key = \"MOCK_API_KEY\"")
-            .unwrap();
+        let mock_fs = FsMockBuilder::new()?
+            .mock_file_contents("client_auth.toml", "api_key = \"MOCK_API_KEY\"")?;
+        let mock_data_dir = mock_fs.path();
 
         // set up mock server
         let mock_server = ApiMockBuilder::new()
@@ -118,7 +103,7 @@ pub mod e2e {
 
         // run the thing
         let mut cmd = Command::cargo_bin("todoist").unwrap();
-        cmd.arg("--local-dir").arg(data_dir);
+        cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("--add").arg("new todo!");
 
@@ -129,7 +114,7 @@ pub mod e2e {
             .stdout(predicates::str::contains("Todo 'new todo!' added"));
 
         // check that a file was created
-        assert!(data_dir.join("data").join("user.json").exists());
+        assert!(mock_data_dir.join("data").join("user.json").exists());
 
         Ok(())
     }

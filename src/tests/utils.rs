@@ -39,3 +39,40 @@ mod wiremock_wrapper {
         }
     }
 }
+
+#[cfg(test)]
+pub use assert_fs_wrapper::FsMockBuilder;
+
+#[cfg(test)]
+mod assert_fs_wrapper {
+    use assert_fs::{
+        prelude::{FileTouch, FileWriteStr, PathChild},
+        TempDir,
+    };
+    use std::{error::Error, fmt::Display, path::Path};
+
+    pub struct FsMockBuilder {
+        mock_dir: TempDir,
+    }
+
+    impl FsMockBuilder {
+        pub fn new() -> Result<Self, Box<dyn Error>> {
+            let mock_dir = TempDir::new()?;
+            Ok(FsMockBuilder { mock_dir })
+        }
+
+        pub fn mock_file_contents<T>(self, path: &str, contents: T) -> Result<Self, Box<dyn Error>>
+        where
+            T: Display,
+        {
+            let mock_path = self.mock_dir.child(path);
+            mock_path.touch()?;
+            mock_path.write_str(contents.to_string().as_str())?;
+            Ok(self)
+        }
+
+        pub fn path(&self) -> &Path {
+            self.mock_dir.path()
+        }
+    }
+}
