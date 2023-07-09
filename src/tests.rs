@@ -1,11 +1,14 @@
+mod utils;
+
 #[cfg(test)]
 pub mod e2e {
+    use crate::{
+        sync::{AddItemSyncRequest, GetUserSyncRequest, SyncResponse, User},
+        tests::utils::ApiMockBuilder,
+    };
     use assert_cmd::Command;
     use assert_fs::prelude::{FileTouch, FileWriteStr, PathChild};
     use std::collections::HashMap;
-    use wiremock::{Mock, MockServer, Request, ResponseTemplate};
-
-    use crate::sync::{AddItemSyncRequest, GetUserSyncRequest, SyncResponse, User};
 
     #[tokio::test]
     async fn add_to_inbox_when_user_data_exists() -> Result<(), Box<dyn std::error::Error>> {
@@ -19,7 +22,7 @@ pub mod e2e {
             .write_str("api_key = \"MOCK_API_KEY\"")
             .unwrap();
 
-        let mock_user_storage = mock_local_dir.child("data").child("user.json");
+        let mock_user_storage = mock_local_dir.child("data/user.json");
         mock_user_storage.touch().unwrap();
         mock_user_storage
             .write_str(
@@ -31,30 +34,22 @@ pub mod e2e {
             .unwrap();
 
         // set up mock server
-        let mock_server = MockServer::start().await;
-        let server_url = mock_server.uri();
-
-        let matcher = |request: &Request| {
-            request
-                .body_json::<AddItemSyncRequest>()
-                .is_ok_and(|request| request.commands[0].args.project_id == "MOCK_INBOX_PROJECT_ID")
-        };
-
-        let template = {
-            let response = SyncResponse {
-                full_sync: true,
-                sync_status: None,
-                sync_token: String::from("MOCK_SYNC_TOKEN"),
-                temp_id_mapping: HashMap::new(),
-                user: None,
-            };
-            ResponseTemplate::new(200).set_body_json(response)
-        };
-
-        Mock::given(matcher)
-            .respond_with(template)
-            .mount(&mock_server)
+        let mock_server = ApiMockBuilder::new()
+            .await
+            .mock_response(
+                |request: AddItemSyncRequest| {
+                    request.commands[0].args.project_id == "MOCK_INBOX_PROJECT_ID"
+                },
+                SyncResponse {
+                    full_sync: true,
+                    sync_status: None,
+                    sync_token: String::from("MOCK_SYNC_TOKEN"),
+                    temp_id_mapping: HashMap::new(),
+                    user: None,
+                },
+            )
             .await;
+        let server_url = mock_server.uri();
 
         // run the thing
         let mut cmd = Command::cargo_bin("todoist").unwrap();
@@ -82,65 +77,44 @@ pub mod e2e {
             .unwrap();
 
         // set up mock server
-        let mock_server = MockServer::start().await;
-        let server_url = mock_server.uri();
-
-        let get_user_matcher = |request: &Request| {
-            request
-                .body_json::<GetUserSyncRequest>()
-                .is_ok_and(|request| {
+        let mock_server = ApiMockBuilder::new()
+            .await
+            .mock_response(
+                |request: GetUserSyncRequest| {
                     request
                         .resource_types
                         .get(0)
                         .is_some_and(|resource| resource == "user")
-                })
-        };
-
-        let get_user_response = {
-            let response = SyncResponse {
-                full_sync: true,
-                sync_status: None,
-                sync_token: String::from("MOCK_SYNC_TOKEN"),
-                temp_id_mapping: HashMap::new(),
-                user: Some(User {
-                    full_name: "Drew".to_string(),
-                    inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                }),
-            };
-            ResponseTemplate::new(200).set_body_json(response)
-        };
-
-        Mock::given(get_user_matcher)
-            .respond_with(get_user_response)
-            .mount(&mock_server)
-            .await;
-
-        let add_todo_matcher = |request: &Request| {
-            request
-                .body_json::<AddItemSyncRequest>()
-                .is_ok_and(|request| {
+                },
+                SyncResponse {
+                    full_sync: true,
+                    sync_status: None,
+                    sync_token: String::from("MOCK_SYNC_TOKEN"),
+                    temp_id_mapping: HashMap::new(),
+                    user: Some(User {
+                        full_name: "Drew".to_string(),
+                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                    }),
+                },
+            )
+            .await
+            .mock_response(
+                |request: AddItemSyncRequest| {
                     request
                         .commands
                         .get(0)
                         .is_some_and(|command| command.args.project_id == "MOCK_INBOX_PROJECT_ID")
-                })
-        };
-
-        let add_todo_response = {
-            let response = SyncResponse {
-                full_sync: true,
-                sync_status: None,
-                sync_token: String::from("MOCK_SYNC_TOKEN"),
-                temp_id_mapping: HashMap::new(),
-                user: None,
-            };
-            ResponseTemplate::new(200).set_body_json(response)
-        };
-
-        Mock::given(add_todo_matcher)
-            .respond_with(add_todo_response)
-            .mount(&mock_server)
+                },
+                SyncResponse {
+                    full_sync: true,
+                    sync_status: None,
+                    sync_token: String::from("MOCK_SYNC_TOKEN"),
+                    temp_id_mapping: HashMap::new(),
+                    user: None,
+                },
+            )
             .await;
+        let server_url = mock_server.uri();
 
         // run the thing
         let mut cmd = Command::cargo_bin("todoist").unwrap();
