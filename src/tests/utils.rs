@@ -4,7 +4,7 @@ pub use wiremock_wrapper::ApiMockBuilder;
 #[cfg(test)]
 mod wiremock_wrapper {
     use serde::{Deserialize, Serialize};
-    use wiremock::{Mock, MockServer, Request, ResponseTemplate};
+    use wiremock::{matchers, Mock, MockServer, Request, ResponseTemplate};
 
     pub struct ApiMockBuilder {
         mock_server: MockServer,
@@ -18,7 +18,7 @@ mod wiremock_wrapper {
         }
 
         // HACK: Not sure if the typing on `F` here is all necessary, or if there's a way around the `Clone` constraint
-        pub async fn mock_response<F, T, R>(self, condition: F, response: R) -> Self
+        pub async fn mock_response<F, T, R>(self, path: &str, condition: F, response: R) -> Self
         where
             F: Fn(T) -> bool + Send + Sync + Clone + 'static,
             T: for<'de> Deserialize<'de>,
@@ -27,7 +27,8 @@ mod wiremock_wrapper {
             let matcher =
                 move |request: &Request| request.body_json::<T>().is_ok_and(condition.clone());
             let response = ResponseTemplate::new(200).set_body_json(response);
-            Mock::given(matcher)
+            Mock::given(matchers::path(path))
+                .and(matcher)
                 .respond_with(response)
                 .mount(&self.mock_server)
                 .await;

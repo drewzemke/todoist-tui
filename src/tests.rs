@@ -30,6 +30,7 @@ pub mod e2e {
         let mock_server = ApiMockBuilder::new()
             .await
             .mock_response(
+                "sync",
                 |request: AddItemRequest| {
                     request.commands[0].args.project_id == "MOCK_INBOX_PROJECT_ID"
                 },
@@ -69,6 +70,7 @@ pub mod e2e {
         let mock_server = ApiMockBuilder::new()
             .await
             .mock_response(
+                "sync",
                 |request: GetUserRequest| {
                     request
                         .resource_types
@@ -88,6 +90,7 @@ pub mod e2e {
             )
             .await
             .mock_response(
+                "sync",
                 |request: AddItemRequest| {
                     request
                         .commands
@@ -142,6 +145,7 @@ pub mod e2e {
         let mock_server = ApiMockBuilder::new()
             .await
             .mock_response(
+                "projects/get_data",
                 |request: ProjectDataRequest| request.project_id == "MOCK_INBOX_PROJECT_ID",
                 ProjectDataResponse {
                     project: Project {
