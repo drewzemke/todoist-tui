@@ -42,10 +42,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let sync_url = args.sync_url.unwrap_or(SYNC_URL.into());
 
     let data_dir = if let Some(dir) = args.local_dir {
-        PathBuf::from_str(dir.as_str()).unwrap()
+        PathBuf::from_str(dir.as_str())?
+    } else if let Some(dir) = dirs::data_local_dir() {
+        dir.join("tuido")
     } else {
-        let data_dir = dirs::data_local_dir().unwrap();
-        data_dir.join("tuido")
+        return Err("Could not find local data directory.".into());
     };
 
     let api_key = get_api_key(&data_dir)?;
@@ -136,7 +137,7 @@ async fn add_item(
     Ok(resp)
 }
 
-pub async fn get_user(sync_url: &String, api_key: &String) -> Result<User, Box<dyn Error>> {
+async fn get_user(sync_url: &String, api_key: &String) -> Result<User, Box<dyn Error>> {
     print!("Fetching user data... ");
     let request_body = GetUserRequest {
         sync_token: "*".to_string(),
@@ -154,6 +155,10 @@ pub async fn get_user(sync_url: &String, api_key: &String) -> Result<User, Box<d
         .map(reqwest::Response::json::<Response>)?
         .await?;
 
-    println!("done.");
-    Ok(resp.user.unwrap())
+    if let Some(user) = resp.user {
+        println!("done.");
+        Ok(user)
+    } else {
+        Err("Server response did not contain user information".into())
+    }
 }

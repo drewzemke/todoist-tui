@@ -103,7 +103,8 @@ pub mod e2e {
         let server_url = mock_server.uri();
 
         // run the thing
-        let mut cmd = Command::cargo_bin("todoist").unwrap();
+        let mut cmd = Command::cargo_bin("todoist")
+            .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("--add").arg("new todo!");
