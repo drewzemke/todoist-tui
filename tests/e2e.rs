@@ -1,16 +1,16 @@
-mod utils;
+#![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
+mod test_utils;
 
 #[cfg(test)]
 pub mod e2e {
-    use crate::{
-        sync::{
-            AddItemRequest, GetUserRequest, Item, Project, ProjectDataRequest, ProjectDataResponse,
-            Response, User,
-        },
-        tests::utils::{ApiMockBuilder, FsMockBuilder},
-    };
     use assert_cmd::Command;
     use std::collections::HashMap;
+    use todoist::sync::{
+        AddItemRequest, GetUserRequest, Item, Project, ProjectDataRequest, ProjectDataResponse,
+        Response, User,
+    };
+
+    use crate::test_utils::{ApiMockBuilder, FsMockBuilder};
 
     #[tokio::test]
     async fn add_to_inbox_when_user_data_exists() -> Result<(), Box<dyn std::error::Error>> {
