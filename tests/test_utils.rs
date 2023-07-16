@@ -4,7 +4,10 @@ pub use wiremock_wrapper::ApiMockBuilder;
 #[cfg(test)]
 mod wiremock_wrapper {
     use serde::{Deserialize, Serialize};
-    use wiremock::{matchers, Mock, MockServer, Request, ResponseTemplate};
+    use wiremock::{
+        matchers::{self, header_regex},
+        Mock, MockServer, Request, ResponseTemplate,
+    };
 
     pub struct ApiMockBuilder {
         mock_server: MockServer,
@@ -29,6 +32,8 @@ mod wiremock_wrapper {
             let response = ResponseTemplate::new(200).set_body_json(response);
             Mock::given(matchers::path(path))
                 .and(matcher)
+                // TODO: Make this configurable?
+                .and(header_regex("Authorization", "MOCK_API_KEY"))
                 .respond_with(response)
                 .mount(&self.mock_server)
                 .await;

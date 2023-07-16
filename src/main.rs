@@ -4,6 +4,7 @@ use serde::Deserialize;
 use std::{
     error::Error,
     fs,
+    io::{stdout, Write},
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -90,9 +91,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
 fn get_api_key(data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
     let auth_file_name = "client_auth.toml";
     let auth_path = Path::new(data_dir).join(auth_file_name);
-    let file = fs::read_to_string(auth_path)?;
-    let config: Config = toml::from_str(file.as_str())?;
-    Ok(config.api_key)
+    let api_key = fs::read_to_string(auth_path)
+        .ok()
+        .and_then(|file| toml::from_str::<Config>(file.as_str()).ok())
+        .and_then(|config| Some(config.api_key))
+        .unwrap_or_else(|| {
+            println!("Could not find a stored API key.");
+            println!("Go get it and paste it here:");
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input);
+            input.trim().to_string()
+        });
+
+    Ok(api_key)
 }
 
 async fn get_stored_user_data(

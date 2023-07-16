@@ -26,7 +26,7 @@ Woo!
 - [ ] refactor tests to be more modular (specifically for mocking)
 
 ### other todos
-- [ ] add stricter clippy, including `unwrap` (replace `unwraps` with allowed `expects` in tests)
+- [x] add stricter clippy, including `unwrap` (replace `unwraps` with allowed `expects` in tests)
 - [ ] figure out how to organize tests so that we can select when to run/not run e2e's
 
 ---
