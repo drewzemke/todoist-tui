@@ -33,7 +33,7 @@ mod wiremock_wrapper {
             Mock::given(matchers::path(path))
                 .and(matcher)
                 // TODO: Make this configurable?
-                .and(header_regex("Authorization", "MOCK_API_KEY"))
+                .and(header_regex("Authorization", "MOCK_API_TOKEN"))
                 .respond_with(response)
                 .mount(&self.mock_server)
                 .await;

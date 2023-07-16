@@ -25,9 +25,9 @@ struct Args {
     #[arg(short, long = "list")]
     list_inbox: bool,
 
-    /// Store a Todoist API key.
-    #[arg(long = "set-api-key", name = "KEY")]
-    set_api_key: Option<String>,
+    /// Store a Todoist API token.
+    #[arg(long = "set-api-token", name = "TOKEN")]
+    set_api_token: Option<String>,
 
     /// Override the URL for the Todoist Sync API (mostly for testing purposes).
     #[arg(long = "sync-url", hide = true)]
@@ -40,11 +40,11 @@ struct Args {
 
 #[derive(Serialize, Deserialize)]
 struct Config {
-    api_key: String,
+    api_token: String,
 }
 
 const SYNC_URL: &str = "https://api.todoist.com/sync/v9";
-const MISSING_API_KEY_MESSAGE : &str = "Could not find an API key. Go to https://todoist.com/app/settings/integrations/developer to find yours, then re-run with '--set-api-key <KEY>'.";
+const MISSING_API_TOKEN_MESSAGE : &str = "Could not find an API token. Go to https://todoist.com/app/settings/integrations/developer to get yours, then re-run with '--set-api-token <TOKEN>'.";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -60,19 +60,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         return Err("Could not find local data directory.".into());
     };
 
-    let api_key = if let Some(api_key) = args.set_api_key {
-        set_api_key(api_key, &data_dir)?
+    let api_token = if let Some(api_token) = args.set_api_token {
+        set_api_token(api_token, &data_dir)?
     } else {
-        get_api_key(&data_dir).map_err(|_e| MISSING_API_KEY_MESSAGE)?
+        get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?
     };
 
     // FIXME: probably want to split up the network/file responsibilities here
-    let stored_user = get_stored_user_data(&data_dir, &sync_url, &api_key).await?;
+    let stored_user = get_stored_user_data(&data_dir, &sync_url, &api_token).await?;
 
     if let Some(new_todo) = args.add_todo {
         let add_item_response = add_item(
             &sync_url,
-            &api_key,
+            &api_token,
             &stored_user.inbox_project_id,
             new_todo.clone(),
         )
@@ -85,7 +85,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     if args.list_inbox {
         let get_inbox_response =
-            get_inbox(&sync_url, &api_key, &stored_user.inbox_project_id).await?;
+            get_inbox(&sync_url, &api_token, &stored_user.inbox_project_id).await?;
 
         println!("Inbox: ");
         for Item { content, .. } in get_inbox_response.items {
@@ -97,32 +97,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn get_api_key(data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
+fn get_api_token(data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
     let auth_file_name = "client_auth.toml";
     let auth_path = Path::new(data_dir).join(auth_file_name);
     let file = fs::read_to_string(auth_path)?;
     let config: Config = toml::from_str(file.as_str())?;
 
-    Ok(config.api_key)
+    Ok(config.api_token)
 }
 
-fn set_api_key(api_key: String, data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
+fn set_api_token(api_token: String, data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
     let auth_file_name = "client_auth.toml";
     let auth_path = Path::new(data_dir).join(auth_file_name);
     fs::write(
         &auth_path,
         toml::to_string_pretty(&Config {
-            api_key: api_key.clone(),
+            api_token: api_token.clone(),
         })?,
     )?;
-    println!("Stored API key in '{}'.", auth_path.display());
-    Ok(api_key)
+    println!("Stored API token in '{}'.", auth_path.display());
+    Ok(api_token)
 }
 
 async fn get_stored_user_data(
     data_dir: &PathBuf,
     sync_url: &String,
-    api_key: &String,
+    api_token: &String,
 ) -> Result<User, Box<dyn Error>> {
     let user_storage_path = Path::new(data_dir).join("data").join("user.json");
 
@@ -131,7 +131,7 @@ async fn get_stored_user_data(
         let user = serde_json::from_str::<User>(&file)?;
         Ok(user)
     } else {
-        let user = get_user(sync_url, api_key).await?;
+        let user = get_user(sync_url, api_token).await?;
         // store in file
         println!("Stored user data in '{}'.", user_storage_path.display());
         fs::create_dir_all(Path::new(data_dir).join("data"))?;
@@ -143,7 +143,7 @@ async fn get_stored_user_data(
 
 async fn add_item(
     sync_url: &str,
-    api_key: &str,
+    api_token: &str,
     project_id: &str,
     item: String,
 ) -> Result<Response, Box<dyn Error>> {
@@ -163,7 +163,7 @@ async fn add_item(
 
     let resp = reqwest::Client::new()
         .post(format!("{sync_url}/sync"))
-        .header("Authorization", format!("Bearer {api_key}"))
+        .header("Authorization", format!("Bearer {api_token}"))
         .json(&request_body)
         .send()
         .await
@@ -174,7 +174,7 @@ async fn add_item(
 
 async fn get_inbox(
     sync_url: &str,
-    api_key: &str,
+    api_token: &str,
     project_id: &str,
 ) -> Result<ProjectDataResponse, Box<dyn Error>> {
     let request_body = ProjectDataRequest {
@@ -183,7 +183,7 @@ async fn get_inbox(
 
     let resp = reqwest::Client::new()
         .post(format!("{sync_url}/projects/get_data"))
-        .header("Authorization", format!("Bearer {api_key}"))
+        .header("Authorization", format!("Bearer {api_token}"))
         .json(&request_body)
         .send()
         .await
@@ -193,7 +193,7 @@ async fn get_inbox(
     Ok(resp?)
 }
 
-async fn get_user(sync_url: &String, api_key: &String) -> Result<User, Box<dyn Error>> {
+async fn get_user(sync_url: &String, api_token: &String) -> Result<User, Box<dyn Error>> {
     print!("Fetching user data... ");
     let request_body = GetUserRequest {
         sync_token: "*".to_string(),
@@ -204,7 +204,7 @@ async fn get_user(sync_url: &String, api_key: &String) -> Result<User, Box<dyn E
     let client = reqwest::Client::new();
     let resp = client
         .post(format!("{sync_url}/sync"))
-        .header("Authorization", format!("Bearer {api_key}"))
+        .header("Authorization", format!("Bearer {api_token}"))
         .json(&request_body)
         .send()
         .await

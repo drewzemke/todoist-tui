@@ -14,10 +14,10 @@ Woo!
   - reads from and writes to fs
   - two api calls
 
-- [ ] add a todo when there's no api key, so we need to prompt for it?
+- [x] add a todo when there's no api token, so we need to prompt for it?
 
 ### negative scenarios
-- [ ] invalid api key
+- [ ] invalid api token
 - [ ] cannot reach server
 - [ ] server returns error
 
