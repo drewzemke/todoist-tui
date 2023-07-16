@@ -1,10 +1,9 @@
 #![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
 use clap::Parser;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
     error::Error,
     fs,
-    io::{stdout, Write},
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -14,6 +13,7 @@ use todoist::sync::{
 };
 use uuid::Uuid;
 
+// TODO: make some of these into commands rather than optional arguments
 #[derive(Debug, Parser)]
 #[command(author)]
 struct Args {
@@ -25,6 +25,10 @@ struct Args {
     #[arg(short, long = "list")]
     list_inbox: bool,
 
+    /// Store a Todoist API key.
+    #[arg(long = "set-api-key", name = "KEY")]
+    set_api_key: Option<String>,
+
     /// Override the URL for the Todoist Sync API (mostly for testing purposes).
     #[arg(long = "sync-url", hide = true)]
     sync_url: Option<String>,
@@ -34,12 +38,13 @@ struct Args {
     local_dir: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct Config {
     api_key: String,
 }
 
 const SYNC_URL: &str = "https://api.todoist.com/sync/v9";
+const MISSING_API_KEY_MESSAGE : &str = "Could not find an API key. Go to https://todoist.com/app/settings/integrations/developer to find yours, then re-run with '--set-api-key <KEY>'.";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -55,7 +60,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         return Err("Could not find local data directory.".into());
     };
 
-    let api_key = get_api_key(&data_dir)?;
+    let api_key = if let Some(api_key) = args.set_api_key {
+        set_api_key(api_key, &data_dir)?
+    } else {
+        get_api_key(&data_dir).map_err(|_e| MISSING_API_KEY_MESSAGE)?
+    };
 
     // FIXME: probably want to split up the network/file responsibilities here
     let stored_user = get_stored_user_data(&data_dir, &sync_url, &api_key).await?;
@@ -91,18 +100,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
 fn get_api_key(data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
     let auth_file_name = "client_auth.toml";
     let auth_path = Path::new(data_dir).join(auth_file_name);
-    let api_key = fs::read_to_string(auth_path)
-        .ok()
-        .and_then(|file| toml::from_str::<Config>(file.as_str()).ok())
-        .and_then(|config| Some(config.api_key))
-        .unwrap_or_else(|| {
-            println!("Could not find a stored API key.");
-            println!("Go get it and paste it here:");
-            let mut input = String::new();
-            std::io::stdin().read_line(&mut input);
-            input.trim().to_string()
-        });
+    let file = fs::read_to_string(auth_path)?;
+    let config: Config = toml::from_str(file.as_str())?;
 
+    Ok(config.api_key)
+}
+
+fn set_api_key(api_key: String, data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
+    let auth_file_name = "client_auth.toml";
+    let auth_path = Path::new(data_dir).join(auth_file_name);
+    fs::write(
+        &auth_path,
+        toml::to_string_pretty(&Config {
+            api_key: api_key.clone(),
+        })?,
+    )?;
+    println!("Stored API key in '{}'.", auth_path.display());
     Ok(api_key)
 }
 
@@ -120,7 +133,7 @@ async fn get_stored_user_data(
     } else {
         let user = get_user(sync_url, api_key).await?;
         // store in file
-        println!("Storing user data in '{}'.", user_storage_path.display());
+        println!("Stored user data in '{}'.", user_storage_path.display());
         fs::create_dir_all(Path::new(data_dir).join("data"))?;
         let file = fs::File::create(user_storage_path)?;
         serde_json::to_writer_pretty(file, &user)?;
