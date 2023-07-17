@@ -40,6 +40,7 @@ pub mod e2e {
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::new(),
                     user: None,
+                    items: vec![],
                 },
             )
             .await;
@@ -86,6 +87,7 @@ pub mod e2e {
                         full_name: "Drew".to_string(),
                         inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                     }),
+                    items: vec![],
                 },
             )
             .await
@@ -103,6 +105,7 @@ pub mod e2e {
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::new(),
                     user: None,
+                    items: vec![],
                 },
             )
             .await;
@@ -210,14 +213,17 @@ pub mod e2e {
                     items: vec![
                         Item {
                             id: "MOCK_ITEM_ID_1".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo One!".to_string(),
                         },
                         Item {
                             id: "MOCK_ITEM_ID_2".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Two!".to_string(),
                         },
                         Item {
                             id: "MOCK_ITEM_ID_3".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Three!".to_string(),
                         },
                     ],

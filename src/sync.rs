@@ -12,7 +12,9 @@ pub struct Response {
 
     pub sync_token: String,
     pub temp_id_mapping: HashMap<Uuid, String>,
+
     pub user: Option<User>,
+    pub items: Vec<Item>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -34,6 +36,12 @@ pub struct GetUserRequest {
     pub sync_token: String,
     pub resource_types: Vec<String>,
     pub commands: Vec<AddItemCommand>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReadRequest {
+    pub sync_token: String,
+    pub resource_types: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -72,5 +80,6 @@ pub struct Project {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Item {
     pub id: String,
+    pub project_id: String,
     pub content: String,
 }

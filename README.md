@@ -5,6 +5,12 @@ Woo!
 
 ## Just my notes and task tracking, please ignore
 
+### get syncin'
+- [ ] full sync to read data, store it in a file (along with last sync date)
+- [ ] update existing flows (or make copies?) to mutate local data rather than do api calls
+- [ ] incremental sync to update server data
+      (make it a `--sync` option that runs before/after read/write operations?)
+
 ### e2e flows -- positive scenarios
 - [x] add a todo when user data (namely, inbox id) is already stored
 - [x] add a todo when user data doesn't exist (so we need to get it!)

@@ -9,7 +9,7 @@ use std::{
 };
 use todoist::sync::{
     AddItemCommand, AddItemRequest, AddItemRequestArgs, GetUserRequest, Item, ProjectDataRequest,
-    ProjectDataResponse, Response, User,
+    ProjectDataResponse, ReadRequest, Response, User,
 };
 use uuid::Uuid;
 
@@ -48,6 +48,10 @@ enum Command {
         /// The Todoist API token.
         token: String,
     },
+
+    /// Perform a full sync with the Todoist server.
+    #[command()]
+    Sync,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -101,6 +105,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
         }
         Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
+        Command::Sync => {
+            let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
+            full_sync(&sync_url, &api_token).await?;
+        }
     };
 
     println!("Bye!");
@@ -222,4 +230,25 @@ async fn get_user(sync_url: &String, api_token: &String) -> Result<User, Box<dyn
     } else {
         Err("Server response did not contain user information".into())
     }
+}
+
+async fn full_sync(sync_url: &String, api_token: &String) -> Result<(), Box<dyn Error>> {
+    let request_body = ReadRequest {
+        sync_token: "*".to_string(),
+        resource_types: vec!["all".to_string()],
+    };
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("{sync_url}/sync"))
+        .header("Authorization", format!("Bearer {api_token}"))
+        .json(&request_body)
+        .send()
+        .await
+        .map(reqwest::Response::json::<Response>)?
+        .await?;
+
+    println!("{resp:?}");
+
+    Ok(())
 }
