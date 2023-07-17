@@ -7,27 +7,23 @@ Woo!
 
 ### e2e flows -- positive scenarios
 - [x] add a todo when user data (namely, inbox id) is already stored
-  - reads from fs
-  - one api call
-
 - [x] add a todo when user data doesn't exist (so we need to get it!)
-  - reads from and writes to fs
-  - two api calls
-
-- [x] add a todo when there's no api token, so we need to prompt for it?
+- [x] set the api token
+- [ ] complete a todo
 
 ### negative scenarios
-- [ ] invalid api token
+- [x] missing api token
 - [ ] cannot reach server
 - [ ] server returns error
+- [ ] invalid api token (may be covered by the above)
 
 ### refactors
+- [x] refactor tests to be more modular (specifically for mocking)
 - [ ] move stuff out of `main.rs` and into `cli.rs` or something
-- [ ] refactor tests to be more modular (specifically for mocking)
 
 ### other todos
 - [x] add stricter clippy, including `unwrap` (replace `unwraps` with allowed `expects` in tests)
-- [ ] figure out how to organize tests so that we can select when to run/not run e2e's
+- [ ] better test organization
 
 ---
 

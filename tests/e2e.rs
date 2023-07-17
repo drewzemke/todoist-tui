@@ -50,7 +50,7 @@ pub mod e2e {
             Command::cargo_bin("todoist").expect("could not run program using 'assert_cmd'");
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
-        cmd.arg("--add").arg("new todo!");
+        cmd.arg("add").arg("new todo!");
 
         // check output
         cmd.assert()
@@ -113,7 +113,7 @@ pub mod e2e {
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
-        cmd.arg("--add").arg("new todo!");
+        cmd.arg("add").arg("new todo!");
 
         // check output
         cmd.assert()
@@ -140,7 +140,7 @@ pub mod e2e {
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
-        cmd.arg("--add").arg("new todo!");
+        cmd.arg("add").arg("new todo!");
 
         // check output
         cmd.assert()
@@ -165,7 +165,7 @@ pub mod e2e {
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
-        cmd.arg("--set-api-token").arg("MOCK_API_TOKEN");
+        cmd.arg("set-token").arg("MOCK_API_TOKEN");
 
         // check output
         cmd.assert()
@@ -231,7 +231,7 @@ pub mod e2e {
             Command::cargo_bin("todoist").expect("could not run program using 'assert_cmd'");
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
-        cmd.arg("--list");
+        cmd.arg("list");
 
         // check output
         cmd.assert()

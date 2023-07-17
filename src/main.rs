@@ -1,5 +1,5 @@
 #![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::{
     error::Error,
@@ -14,20 +14,11 @@ use todoist::sync::{
 use uuid::Uuid;
 
 // TODO: make some of these into commands rather than optional arguments
-#[derive(Debug, Parser)]
+#[derive(Parser)]
 #[command(author)]
 struct Args {
-    /// Add a new todo to the inbox.
-    #[arg(short, long = "add", name = "TODO")]
-    add_todo: Option<String>,
-
-    /// List the items in the inbox.
-    #[arg(short, long = "list")]
-    list_inbox: bool,
-
-    /// Store a Todoist API token.
-    #[arg(long = "set-api-token", name = "TOKEN")]
-    set_api_token: Option<String>,
+    #[command(subcommand)]
+    command: Command,
 
     /// Override the URL for the Todoist Sync API (mostly for testing purposes).
     #[arg(long = "sync-url", hide = true)]
@@ -36,6 +27,27 @@ struct Args {
     /// Override the local app storage directory (mostly for testing purposes).
     #[arg(long = "local-dir", hide = true)]
     local_dir: Option<String>,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Add a new todo to your inbox.
+    #[command(name = "add")]
+    AddTodo {
+        /// The text of the todo.
+        todo: String,
+    },
+
+    /// List the items in your inbox.
+    #[command(name = "list")]
+    ListInbox,
+
+    /// Store a Todoist API token.
+    #[command(name = "set-token")]
+    SetApiToken {
+        /// The Todoist API token.
+        token: String,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -60,38 +72,36 @@ async fn main() -> Result<(), Box<dyn Error>> {
         return Err("Could not find local data directory.".into());
     };
 
-    let api_token = if let Some(api_token) = args.set_api_token {
-        set_api_token(api_token, &data_dir)?
-    } else {
-        get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?
+    match args.command {
+        Command::AddTodo { todo } => {
+            let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
+            // FIXME: probably want to split up the network/file responsibilities here
+            let stored_user = get_stored_user_data(&data_dir, &sync_url, &api_token).await?;
+            let add_item_response = add_item(
+                &sync_url,
+                &api_token,
+                &stored_user.inbox_project_id,
+                todo.clone(),
+            )
+            .await;
+
+            if add_item_response.is_ok() {
+                println!("Todo '{todo}' added to inbox.");
+            }
+        }
+        Command::ListInbox => {
+            let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
+            let stored_user = get_stored_user_data(&data_dir, &sync_url, &api_token).await?;
+            let get_inbox_response =
+                get_inbox(&sync_url, &api_token, &stored_user.inbox_project_id).await?;
+
+            println!("Inbox: ");
+            for Item { content, .. } in get_inbox_response.items {
+                println!("- {content}");
+            }
+        }
+        Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
     };
-
-    // FIXME: probably want to split up the network/file responsibilities here
-    let stored_user = get_stored_user_data(&data_dir, &sync_url, &api_token).await?;
-
-    if let Some(new_todo) = args.add_todo {
-        let add_item_response = add_item(
-            &sync_url,
-            &api_token,
-            &stored_user.inbox_project_id,
-            new_todo.clone(),
-        )
-        .await;
-
-        if add_item_response.is_ok() {
-            println!("Todo '{new_todo}' added to inbox.");
-        }
-    }
-
-    if args.list_inbox {
-        let get_inbox_response =
-            get_inbox(&sync_url, &api_token, &stored_user.inbox_project_id).await?;
-
-        println!("Inbox: ");
-        for Item { content, .. } in get_inbox_response.items {
-            println!("- {content}");
-        }
-    }
 
     println!("Bye!");
     Ok(())
@@ -106,17 +116,12 @@ fn get_api_token(data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
     Ok(config.api_token)
 }
 
-fn set_api_token(api_token: String, data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
+fn set_api_token(api_token: String, data_dir: &PathBuf) -> Result<(), Box<dyn Error>> {
     let auth_file_name = "client_auth.toml";
     let auth_path = Path::new(data_dir).join(auth_file_name);
-    fs::write(
-        &auth_path,
-        toml::to_string_pretty(&Config {
-            api_token: api_token.clone(),
-        })?,
-    )?;
+    fs::write(&auth_path, toml::to_string_pretty(&Config { api_token })?)?;
     println!("Stored API token in '{}'.", auth_path.display());
-    Ok(api_token)
+    Ok(())
 }
 
 async fn get_stored_user_data(
