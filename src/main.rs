@@ -105,7 +105,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
         Command::Sync => {
             let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
-            full_sync(&sync_url, &api_token).await?;
+            full_sync(&sync_url, &api_token, &data_dir).await?;
         }
     };
 
@@ -144,10 +144,10 @@ async fn get_stored_user_data(
     } else {
         let user = get_user(sync_url, api_token).await?;
         // store in file
-        println!("Stored user data in '{}'.", user_storage_path.display());
         fs::create_dir_all(Path::new(data_dir).join("data"))?;
-        let file = fs::File::create(user_storage_path)?;
+        let file = fs::File::create(&user_storage_path)?;
         serde_json::to_writer_pretty(file, &user)?;
+        println!("Stored user data in '{}'.", user_storage_path.display());
         Ok(user)
     }
 }
@@ -230,12 +230,18 @@ async fn get_user(sync_url: &String, api_token: &String) -> Result<User, Box<dyn
     }
 }
 
-async fn full_sync(sync_url: &String, api_token: &String) -> Result<(), Box<dyn Error>> {
+async fn full_sync(
+    sync_url: &String,
+    api_token: &String,
+    data_dir: &PathBuf,
+) -> Result<(), Box<dyn Error>> {
     let request_body = Request {
         sync_token: "*".to_string(),
         resource_types: vec!["all".to_string()],
         commands: vec![],
     };
+
+    print!("Performing a full sync... ");
 
     let client = reqwest::Client::new();
     let resp = client
@@ -244,10 +250,17 @@ async fn full_sync(sync_url: &String, api_token: &String) -> Result<(), Box<dyn 
         .json(&request_body)
         .send()
         .await
-        .map(reqwest::Response::json::<Response>)?
+        .map(reqwest::Response::json::<sync::Response>)?
         .await?;
+    println!("Done.");
 
-    println!("{resp:?}");
+    let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
+
+    // store in file
+    fs::create_dir_all(Path::new(data_dir).join("data"))?;
+    let file = fs::File::create(&sync_storage_path)?;
+    serde_json::to_writer_pretty(file, &resp)?;
+    println!("Stored sync data in '{}'.", sync_storage_path.display());
 
     Ok(())
 }
