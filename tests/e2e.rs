@@ -3,10 +3,9 @@ mod test_utils;
 
 #[cfg(test)]
 pub mod e2e {
-    use assert_cmd::Command;
     use std::{collections::HashMap, fs};
     use todoist::sync::{
-        AddItemRequest, GetUserRequest, Item, Project, ProjectDataRequest, ProjectDataResponse,
+        self, AddItemCommand, Item, Project, ProjectDataRequest, ProjectDataResponse, Request,
         Response, User,
     };
 
@@ -31,8 +30,10 @@ pub mod e2e {
             .await
             .mock_response(
                 "sync",
-                |request: AddItemRequest| {
-                    request.commands[0].args.project_id == "MOCK_INBOX_PROJECT_ID"
+                |request: Request| {
+                    let sync::Command::AddItem(AddItemCommand { ref args, .. }) =
+                        request.commands[0];
+                    args.project_id == "MOCK_INBOX_PROJECT_ID"
                 },
                 Response {
                     full_sync: true,
@@ -47,8 +48,8 @@ pub mod e2e {
         let server_url = mock_server.uri();
 
         // run the thing
-        let mut cmd =
-            Command::cargo_bin("todoist").expect("could not run program using 'assert_cmd'");
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist")
+            .expect("could not run program using 'assert_cmd'");
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("add").arg("new todo!");
@@ -72,7 +73,7 @@ pub mod e2e {
             .await
             .mock_response(
                 "sync",
-                |request: GetUserRequest| {
+                |request: Request| {
                     request
                         .resource_types
                         .get(0)
@@ -93,11 +94,14 @@ pub mod e2e {
             .await
             .mock_response(
                 "sync",
-                |request: AddItemRequest| {
-                    request
-                        .commands
-                        .get(0)
-                        .is_some_and(|command| command.args.project_id == "MOCK_INBOX_PROJECT_ID")
+                |request: Request| {
+                    if let Some(sync::Command::AddItem(AddItemCommand { args, .. })) =
+                        request.commands.get(0)
+                    {
+                        args.project_id == "MOCK_INBOX_PROJECT_ID"
+                    } else {
+                        false
+                    }
                 },
                 Response {
                     full_sync: true,
@@ -112,7 +116,7 @@ pub mod e2e {
         let server_url = mock_server.uri();
 
         // run the thing
-        let mut cmd = Command::cargo_bin("todoist")
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist")
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
@@ -139,7 +143,7 @@ pub mod e2e {
         let server_url = "fake/server/url";
 
         // run the thing
-        let mut cmd = Command::cargo_bin("todoist")
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist")
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
@@ -164,7 +168,7 @@ pub mod e2e {
         let server_url = "fake/server/url";
 
         // run the thing
-        let mut cmd = Command::cargo_bin("todoist")
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist")
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
@@ -233,8 +237,8 @@ pub mod e2e {
         let server_url = mock_server.uri();
 
         // run the thing
-        let mut cmd =
-            Command::cargo_bin("todoist").expect("could not run program using 'assert_cmd'");
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist")
+            .expect("could not run program using 'assert_cmd'");
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("list");

@@ -14,6 +14,8 @@ pub struct Response {
     pub temp_id_mapping: HashMap<Uuid, String>,
 
     pub user: Option<User>,
+
+    #[serde(default)]
     pub items: Vec<Item>,
 }
 
@@ -24,24 +26,16 @@ pub struct User {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct AddItemRequest {
+pub struct Request {
     pub sync_token: String,
     pub resource_types: Vec<String>,
-    pub commands: Vec<AddItemCommand>,
-}
-
-// they're the same, fine for now
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GetUserRequest {
-    pub sync_token: String,
-    pub resource_types: Vec<String>,
-    pub commands: Vec<AddItemCommand>,
+    pub commands: Vec<Command>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ReadRequest {
-    pub sync_token: String,
-    pub resource_types: Vec<String>,
+#[serde(untagged)]
+pub enum Command {
+    AddItem(AddItemCommand),
 }
 
 #[derive(Debug, Serialize, Deserialize)]

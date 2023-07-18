@@ -8,8 +8,8 @@ use std::{
     str::FromStr,
 };
 use todoist::sync::{
-    AddItemCommand, AddItemRequest, AddItemRequestArgs, GetUserRequest, Item, ProjectDataRequest,
-    ProjectDataResponse, ReadRequest, Response, User,
+    self, AddItemCommand, AddItemRequestArgs, Item, ProjectDataRequest, ProjectDataResponse,
+    Request, Response, User,
 };
 use uuid::Uuid;
 
@@ -49,7 +49,7 @@ enum Command {
         token: String,
     },
 
-    /// Perform a full sync with the Todoist server.
+    /// Sync data with the Todoist server.
     #[command()]
     Sync,
 }
@@ -81,17 +81,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
             // FIXME: probably want to split up the network/file responsibilities here
             let stored_user = get_stored_user_data(&data_dir, &sync_url, &api_token).await?;
-            let add_item_response = add_item(
+            add_item(
                 &sync_url,
                 &api_token,
                 &stored_user.inbox_project_id,
                 todo.clone(),
             )
-            .await;
+            .await?;
 
-            if add_item_response.is_ok() {
-                println!("Todo '{todo}' added to inbox.");
-            }
+            println!("Todo '{todo}' added to inbox.");
         }
         Command::ListInbox => {
             let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
@@ -160,10 +158,10 @@ async fn add_item(
     project_id: &str,
     item: String,
 ) -> Result<Response, Box<dyn Error>> {
-    let request_body = AddItemRequest {
+    let request_body = sync::Request {
         sync_token: "*".to_string(),
         resource_types: vec![],
-        commands: vec![AddItemCommand {
+        commands: vec![sync::Command::AddItem(AddItemCommand {
             request_type: "item_add".to_string(),
             args: AddItemRequestArgs {
                 project_id: project_id.to_string(),
@@ -171,7 +169,7 @@ async fn add_item(
             },
             temp_id: Uuid::new_v4(),
             uuid: Uuid::new_v4(),
-        }],
+        })],
     };
 
     let resp = reqwest::Client::new()
@@ -208,7 +206,7 @@ async fn get_inbox(
 
 async fn get_user(sync_url: &String, api_token: &String) -> Result<User, Box<dyn Error>> {
     print!("Fetching user data... ");
-    let request_body = GetUserRequest {
+    let request_body = sync::Request {
         sync_token: "*".to_string(),
         resource_types: vec!["user".to_string()],
         commands: vec![],
@@ -233,9 +231,10 @@ async fn get_user(sync_url: &String, api_token: &String) -> Result<User, Box<dyn
 }
 
 async fn full_sync(sync_url: &String, api_token: &String) -> Result<(), Box<dyn Error>> {
-    let request_body = ReadRequest {
+    let request_body = Request {
         sync_token: "*".to_string(),
         resource_types: vec!["all".to_string()],
+        commands: vec![],
     };
 
     let client = reqwest::Client::new();
