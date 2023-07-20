@@ -7,10 +7,7 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
-use todoist::sync::{
-    self, AddItemCommand, AddItemRequestArgs, Item, ProjectDataRequest, ProjectDataResponse,
-    Request, Response, User,
-};
+use todoist::sync::{self, AddItemCommand, AddItemRequestArgs, Item, Request, Response, User};
 use uuid::Uuid;
 
 // TODO: make some of these into commands rather than optional arguments
@@ -92,13 +89,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             println!("Todo '{todo}' added to inbox.");
         }
         Command::ListInbox => {
-            let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
-            let stored_user = get_stored_user_data(&data_dir, &sync_url, &api_token).await?;
-            let get_inbox_response =
-                get_inbox(&sync_url, &api_token, &stored_user.inbox_project_id).await?;
+            let inbox_items = get_inbox_items(&data_dir)?;
 
             println!("Inbox: ");
-            for Item { content, .. } in get_inbox_response.items {
+            for Item { content, .. } in inbox_items {
                 println!("- {content}");
             }
         }
@@ -183,25 +177,25 @@ async fn add_item(
     Ok(resp?)
 }
 
-async fn get_inbox(
-    sync_url: &str,
-    api_token: &str,
-    project_id: &str,
-) -> Result<ProjectDataResponse, Box<dyn Error>> {
-    let request_body = ProjectDataRequest {
-        project_id: project_id.to_owned(),
-    };
+fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>, Box<dyn Error>> {
+    // read in the stored data
+    let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
 
-    let resp = reqwest::Client::new()
-        .post(format!("{sync_url}/projects/get_data"))
-        .header("Authorization", format!("Bearer {api_token}"))
-        .json(&request_body)
-        .send()
-        .await
-        .map(reqwest::Response::json)?
-        .await;
+    let file = fs::read_to_string(sync_file_path)?;
+    // HACK: wrong type, need a common storage type
+    let data = serde_json::from_str::<Response>(&file)?;
 
-    Ok(resp?)
+    // get the items with the correct id
+    if let Some(inbox_id) = data.user.map(|user| user.inbox_project_id) {
+        let items: Vec<Item> = data
+            .items
+            .into_iter()
+            .filter(|item| item.project_id == inbox_id)
+            .collect();
+        Ok(items)
+    } else {
+        Ok(vec![])
+    }
 }
 
 async fn get_user(sync_url: &String, api_token: &String) -> Result<User, Box<dyn Error>> {

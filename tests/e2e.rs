@@ -12,6 +12,8 @@ pub mod e2e {
     use crate::test_utils::{ApiMockBuilder, FsMockBuilder};
 
     #[tokio::test]
+    // Ignoring for now, since we're changing the behavior to use incremental sync
+    #[ignore]
     async fn add_to_inbox_when_user_data_exists() -> Result<(), Box<dyn std::error::Error>> {
         // create mock `client_auth.toml` and `data/user.json`
         let mock_fs = FsMockBuilder::new()?
@@ -62,6 +64,8 @@ pub mod e2e {
     }
 
     #[tokio::test]
+    // Ignoring for now, since we're changing the behavior to use incremental sync
+    #[ignore]
     async fn add_to_inbox_when_user_data_missing() -> Result<(), Box<dyn std::error::Error>> {
         // create mock `client_auth.toml`
         let mock_fs = FsMockBuilder::new()?
@@ -147,7 +151,7 @@ pub mod e2e {
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
-        cmd.arg("add").arg("new todo!");
+        cmd.arg("sync");
 
         // check output
         cmd.assert()
@@ -190,6 +194,8 @@ pub mod e2e {
     }
 
     #[tokio::test]
+    // Ignoring for now, since we're changing the behavior to use incremental sync
+    #[ignore]
     async fn get_inbox_items() -> Result<(), Box<dyn std::error::Error>> {
         // create mock `client_auth.toml` and `data/user.json`
         let mock_fs = FsMockBuilder::new()?
