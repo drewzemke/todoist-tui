@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
-use todoist::sync::{self, AddItemCommand, AddItemRequestArgs, Item, Request, Response, User};
+use todoist::sync::{self, AddItemCommand, AddItemRequestArgs, Item, Request, Response};
 use uuid::Uuid;
 
 // TODO: make some of these into commands rather than optional arguments
@@ -75,16 +75,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     match args.command {
         Command::AddTodo { todo } => {
-            let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
             // FIXME: probably want to split up the network/file responsibilities here
-            let stored_user = get_stored_user_data(&data_dir, &sync_url, &api_token).await?;
-            add_item(
-                &sync_url,
-                &api_token,
-                &stored_user.inbox_project_id,
-                todo.clone(),
-            )
-            .await?;
+            add_item(&data_dir, &todo)?;
 
             println!("Todo '{todo}' added to inbox.");
         }
@@ -124,57 +116,59 @@ fn set_api_token(api_token: String, data_dir: &PathBuf) -> Result<(), Box<dyn Er
     Ok(())
 }
 
-async fn get_stored_user_data(
-    data_dir: &PathBuf,
-    sync_url: &String,
-    api_token: &String,
-) -> Result<User, Box<dyn Error>> {
-    let user_storage_path = Path::new(data_dir).join("data").join("user.json");
+fn add_item(data_dir: &PathBuf, item: &str) -> Result<(), Box<dyn Error>> {
+    // read in the stored data
+    let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
 
-    if user_storage_path.exists() {
-        let file = fs::read_to_string(user_storage_path)?;
-        let user = serde_json::from_str::<User>(&file)?;
-        Ok(user)
+    let file = fs::read_to_string(sync_file_path)?;
+    let mut data = serde_json::from_str::<Response>(&file)?;
+
+    // create a new item and add it to the item list
+    let inbox_id = &data
+        .user
+        .as_ref()
+        .ok_or(std::convert::Into::<Box<dyn Error>>::into(
+            "Could not find inbox project id in stored data.",
+        ))?
+        .inbox_project_id;
+
+    // FIXME: should Item.id be a uuid?? probs
+    let item_id = Uuid::new_v4();
+    let new_item = Item {
+        id: item_id.to_string(),
+        project_id: inbox_id.clone(),
+        content: item.to_owned(),
+    };
+    data.items.push(new_item);
+
+    // store the data
+    let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
+    let file = fs::File::create(sync_storage_path)?;
+    serde_json::to_writer_pretty(file, &data)?;
+
+    // create a new command and store it
+    let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
+
+    let mut commands: Vec<sync::Command> = if commands_file_path.exists() {
+        let file = fs::read_to_string(&commands_file_path)?;
+        serde_json::from_str::<Vec<sync::Command>>(&file)?
     } else {
-        let user = get_user(sync_url, api_token).await?;
-        // store in file
-        fs::create_dir_all(Path::new(data_dir).join("data"))?;
-        let file = fs::File::create(&user_storage_path)?;
-        serde_json::to_writer_pretty(file, &user)?;
-        println!("Stored user data in '{}'.", user_storage_path.display());
-        Ok(user)
-    }
-}
-
-async fn add_item(
-    sync_url: &str,
-    api_token: &str,
-    project_id: &str,
-    item: String,
-) -> Result<Response, Box<dyn Error>> {
-    let request_body = sync::Request {
-        sync_token: "*".to_string(),
-        resource_types: vec![],
-        commands: vec![sync::Command::AddItem(AddItemCommand {
-            request_type: "item_add".to_string(),
-            args: AddItemRequestArgs {
-                project_id: project_id.to_string(),
-                content: item,
-            },
-            temp_id: Uuid::new_v4(),
-            uuid: Uuid::new_v4(),
-        })],
+        Vec::new()
     };
 
-    let resp = reqwest::Client::new()
-        .post(format!("{sync_url}/sync"))
-        .header("Authorization", format!("Bearer {api_token}"))
-        .json(&request_body)
-        .send()
-        .await
-        .map(reqwest::Response::json)?
-        .await;
-    Ok(resp?)
+    commands.push(sync::Command::AddItem(AddItemCommand {
+        request_type: "add_item".to_owned(),
+        temp_id: item_id,
+        uuid: Uuid::new_v4(),
+        args: AddItemRequestArgs {
+            project_id: inbox_id.clone(),
+            content: item.to_owned(),
+        },
+    }));
+
+    fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
+
+    Ok(())
 }
 
 fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>, Box<dyn Error>> {
@@ -194,33 +188,7 @@ fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>, Box<dyn Error>> {
             .collect();
         Ok(items)
     } else {
-        Ok(vec![])
-    }
-}
-
-async fn get_user(sync_url: &String, api_token: &String) -> Result<User, Box<dyn Error>> {
-    print!("Fetching user data... ");
-    let request_body = sync::Request {
-        sync_token: "*".to_string(),
-        resource_types: vec!["user".to_string()],
-        commands: vec![],
-    };
-
-    let client = reqwest::Client::new();
-    let resp = client
-        .post(format!("{sync_url}/sync"))
-        .header("Authorization", format!("Bearer {api_token}"))
-        .json(&request_body)
-        .send()
-        .await
-        .map(reqwest::Response::json::<Response>)?
-        .await?;
-
-    if let Some(user) = resp.user {
-        println!("done.");
-        Ok(user)
-    } else {
-        Err("Server response did not contain user information".into())
+        Err("Could not find inbox project id in stored data.".into())
     }
 }
 

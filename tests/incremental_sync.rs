@@ -4,8 +4,8 @@ mod test_utils;
 #[cfg(test)]
 pub mod sync {
     use assert_cmd::Command;
-    use std::collections::HashMap;
-    use todoist::sync::{Item, Request, Response, User};
+    use std::{collections::HashMap, fs};
+    use todoist::sync::{self, Item, Request, Response, User};
 
     use crate::test_utils::{ApiMockBuilder, FsMockBuilder};
 
@@ -122,4 +122,61 @@ pub mod sync {
 
         Ok(())
     }
+
+    #[test]
+    fn add_todo_to_local() -> Result<(), Box<dyn std::error::Error>> {
+        // create mock `client_auth.toml` and `data/user.json`
+        let mock_fs = FsMockBuilder::new()?.mock_file_contents(
+            "data/sync.json",
+            // HACK: wrong data type, need a common storage type
+            serde_json::to_string_pretty(&Response {
+                full_sync: true,
+                sync_status: None,
+                sync_token: String::from("MOCK_SYNC_TOKEN"),
+                temp_id_mapping: HashMap::new(),
+                user: Some(User {
+                    full_name: "Drew".to_string(),
+                    inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                }),
+                items: vec![
+                    Item {
+                        id: "MOCK_ITEM_ID_1".to_string(),
+                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                        content: "Todo One!".to_string(),
+                    },
+                    Item {
+                        id: "MOCK_ITEM_ID_2".to_string(),
+                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                        content: "Todo Two!".to_string(),
+                    },
+                ],
+            })?,
+        )?;
+        let mock_data_dir = mock_fs.path();
+
+        // no need to mock the server, but still going to use a fake url to prevent
+        // accidental calls to the real api
+        let server_url = "fake/server/url";
+
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist")?;
+        cmd.arg("--local-dir").arg(mock_data_dir);
+        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("add").arg("new todo!");
+
+        // check output
+        cmd.assert()
+            .stdout(predicates::str::contains("Todo 'new todo!' added"));
+
+        // check that a file was created with the correct content
+        let sync_file = mock_data_dir.join("data").join("commands.json");
+        assert!(sync_file.exists());
+        let file_contents = fs::read_to_string(sync_file)?;
+        dbg!(&file_contents);
+        let commands: Vec<sync::Command> = serde_json::from_str(&file_contents)?;
+        assert_eq!(commands.len(), 1);
+        Ok(())
+    }
+
+    // TODO: next up!
+    // sync again, this time sending the sync token from before, and with an added item
 }
