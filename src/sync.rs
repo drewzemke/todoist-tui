@@ -32,13 +32,13 @@ pub struct Request {
     pub commands: Vec<Command>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum Command {
     AddItem(AddItemCommand),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AddItemCommand {
     #[serde(rename = "type")]
     pub request_type: String,
@@ -48,7 +48,7 @@ pub struct AddItemCommand {
     pub args: AddItemRequestArgs,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AddItemRequestArgs {
     pub project_id: String,
     pub content: String,

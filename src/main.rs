@@ -4,13 +4,13 @@ use serde::{Deserialize, Serialize};
 use std::{
     error::Error,
     fs,
+    io::{self, Write},
     path::{Path, PathBuf},
     str::FromStr,
 };
 use todoist::sync::{self, AddItemCommand, AddItemRequestArgs, Item, Request, Response};
 use uuid::Uuid;
 
-// TODO: make some of these into commands rather than optional arguments
 #[derive(Parser)]
 #[command(author)]
 struct Args {
@@ -91,7 +91,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
         Command::Sync => {
             let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
-            full_sync(&sync_url, &api_token, &data_dir).await?;
+            match get_sync_data(&data_dir) {
+                // HACK: need to check the error type!
+                Err(_) => full_sync(&sync_url, &api_token, &data_dir).await?,
+                Ok(mut sync_data) => {
+                    update_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
+                }
+            }
         }
     };
 
@@ -157,7 +163,7 @@ fn add_item(data_dir: &PathBuf, item: &str) -> Result<(), Box<dyn Error>> {
     };
 
     commands.push(sync::Command::AddItem(AddItemCommand {
-        request_type: "add_item".to_owned(),
+        request_type: "item_add".to_owned(),
         temp_id: item_id,
         uuid: Uuid::new_v4(),
         args: AddItemRequestArgs {
@@ -172,12 +178,7 @@ fn add_item(data_dir: &PathBuf, item: &str) -> Result<(), Box<dyn Error>> {
 }
 
 fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>, Box<dyn Error>> {
-    // read in the stored data
-    let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
-
-    let file = fs::read_to_string(sync_file_path)?;
-    // HACK: wrong type, need a common storage type
-    let data = serde_json::from_str::<Response>(&file)?;
+    let data = get_sync_data(data_dir)?;
 
     // get the items with the correct id
     if let Some(inbox_id) = data.user.map(|user| user.inbox_project_id) {
@@ -192,6 +193,16 @@ fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>, Box<dyn Error>> {
     }
 }
 
+fn get_sync_data(data_dir: &PathBuf) -> Result<Response, Box<dyn Error>> {
+    // read in the stored data
+    let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
+
+    let file = fs::read_to_string(sync_file_path)?;
+    // HACK: wrong type, need a common storage type
+    let data = serde_json::from_str::<Response>(&file)?;
+    Ok(data)
+}
+
 async fn full_sync(
     sync_url: &String,
     api_token: &String,
@@ -204,6 +215,7 @@ async fn full_sync(
     };
 
     print!("Performing a full sync... ");
+    io::stdout().flush()?;
 
     let client = reqwest::Client::new();
     let resp = client
@@ -223,6 +235,84 @@ async fn full_sync(
     let file = fs::File::create(&sync_storage_path)?;
     serde_json::to_writer_pretty(file, &resp)?;
     println!("Stored sync data in '{}'.", sync_storage_path.display());
+
+    Ok(())
+}
+
+async fn update_sync(
+    sync_data: &mut Response,
+    sync_url: &String,
+    api_token: &String,
+    data_dir: &PathBuf,
+) -> Result<(), Box<dyn Error>> {
+    // get commands that we need to send
+    let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
+
+    let mut commands: Vec<sync::Command> = if commands_file_path.exists() {
+        let file = fs::read_to_string(&commands_file_path)?;
+        serde_json::from_str::<Vec<sync::Command>>(&file)?
+    } else {
+        Vec::new()
+    };
+
+    let request_body = Request {
+        sync_token: sync_data.sync_token.clone(),
+        resource_types: vec!["all".to_string()],
+        // HACK: no clone here plz
+        commands: commands.clone(),
+    };
+
+    print!("Syncing latest changes...");
+    io::stdout().flush()?;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("{sync_url}/sync"))
+        .header("Authorization", format!("Bearer {api_token}"))
+        .json(&request_body)
+        .send()
+        .await
+        // .map(reqwest::Response::text)?
+        .map(reqwest::Response::json::<sync::Response>)?
+        .await?;
+    println!("Done.");
+
+    // update the sync_data with the result
+    sync_data.full_sync = resp.full_sync;
+    sync_data.sync_token = resp.sync_token;
+    resp.temp_id_mapping.iter().for_each(|(temp_id, real_id)| {
+        // HACK: should we do something else if we don't find a match?
+        if let Some(matching_item) = sync_data
+            .items
+            .iter_mut()
+            .find(|item| item.id == temp_id.to_string())
+        {
+            matching_item.id = real_id.clone();
+        }
+
+        // remove the matching command
+        commands = commands
+            .clone()
+            .into_iter()
+            .filter(
+                |sync::Command::AddItem(AddItemCommand {
+                     temp_id: command_temp_id,
+                     ..
+                 })| command_temp_id != temp_id,
+            )
+            .collect();
+    });
+
+    let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
+
+    // store in file
+    fs::create_dir_all(Path::new(data_dir).join("data"))?;
+    let file = fs::File::create(&sync_storage_path)?;
+    serde_json::to_writer_pretty(file, &sync_data)?;
+    println!("Stored sync data in '{}'.", sync_storage_path.display());
+
+    // update the commands file
+    fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
 
     Ok(())
 }
