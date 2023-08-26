@@ -1,4 +1,6 @@
 #![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
+// HACK: turn this off at some point
+#![allow(clippy::too_many_lines)]
 mod test_utils;
 
 #[cfg(test)]
@@ -67,7 +69,7 @@ pub mod sync {
 
         // check output
         cmd.assert()
-            .stdout(predicates::str::contains("Performing a full sync"))
+            .stdout(predicates::str::contains("Syncing with Todoist server"))
             .stdout(predicates::str::contains("Stored sync data"));
 
         // check that a file was created
@@ -125,7 +127,7 @@ pub mod sync {
     }
 
     #[test]
-    fn add_todo_to_local() -> Result<(), Box<dyn std::error::Error>> {
+    fn add_todo_to_local_no_sync() -> Result<(), Box<dyn std::error::Error>> {
         // create mock and `data/sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "data/sync.json",
@@ -163,6 +165,7 @@ pub mod sync {
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("add").arg("new todo!");
+        cmd.arg("--no-sync");
 
         // check output
         cmd.assert()
@@ -180,7 +183,7 @@ pub mod sync {
     }
 
     #[tokio::test]
-    async fn incremental_sync_send_new_todo() -> Result<(), Box<dyn std::error::Error>> {
+    async fn full_sync_send_new_todo() -> Result<(), Box<dyn std::error::Error>> {
         let new_item_temp_id = Uuid::new_v4();
 
         // create mock `data/sync.json` and `data/commands.json`
@@ -239,7 +242,7 @@ pub mod sync {
             .mock_response(
                 "sync",
                 |request: Request| {
-                    request.sync_token == "MOCK_SYNC_TOKEN"
+                    request.sync_token == "*"
                         && request.resource_types.get(0).is_some_and(|s| s == "all")
                 },
                 Response {
@@ -251,7 +254,23 @@ pub mod sync {
                         "MOCK_ITEM_ID_2_NEW".to_string(),
                     )]),
                     user: None,
-                    items: vec![],
+                    items: vec![
+                        Item {
+                            id: "MOCK_ITEM_ID_1".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            content: "Todo One!".to_string(),
+                        },
+                        Item {
+                            id: "MOCK_ITEM_ID_2_NEW".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            content: "Todo Two!".to_string(),
+                        },
+                        Item {
+                            id: "MOCK_ITEM_ID_3".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            content: "Todo Three!".to_string(),
+                        },
+                    ],
                 },
             )
             .await;
@@ -264,7 +283,7 @@ pub mod sync {
 
         // check output
         cmd.assert()
-            .stdout(predicates::str::contains("Syncing latest changes"))
+            .stdout(predicates::str::contains("Syncing with Todoist server"))
             .stdout(predicates::str::contains("Stored sync data"));
 
         // check that the sync data file was updated with the correct content
@@ -273,9 +292,10 @@ pub mod sync {
         let sync_data: Response = serde_json::from_str(&file_contents)?;
 
         assert_eq!(sync_data.sync_token, "NEW_MOCK_SYNC_TOKEN");
-        assert_eq!(sync_data.items.len(), 2);
+        assert_eq!(sync_data.items.len(), 3);
         assert_eq!(sync_data.items[0].id, "MOCK_ITEM_ID_1");
         assert_eq!(sync_data.items[1].id, "MOCK_ITEM_ID_2_NEW");
+        assert_eq!(sync_data.items[2].id, "MOCK_ITEM_ID_3");
 
         // check that the commands file is now empty
         let commands_file = mock_data_dir.join("data").join("commands.json");
@@ -287,6 +307,4 @@ pub mod sync {
 
         Ok(())
     }
-
-    // TODO: next up! incremental sync, receiving (and processing) a new todo that was added remotely
 }

@@ -33,6 +33,10 @@ enum Command {
     AddTodo {
         /// The text of the todo.
         todo: String,
+
+        /// Don't sync data with the server.
+        #[arg(long = "no-sync")]
+        no_sync: bool,
     },
 
     /// List the items in your inbox.
@@ -74,11 +78,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     match args.command {
-        Command::AddTodo { todo } => {
+        Command::AddTodo { todo, no_sync } => {
             // FIXME: probably want to split up the network/file responsibilities here
             add_item(&data_dir, &todo)?;
-
             println!("Todo '{todo}' added to inbox.");
+            if !no_sync {
+                let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
+                let mut sync_data = get_sync_data(&data_dir)?;
+                incremental_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
+            }
         }
         Command::ListInbox => {
             let inbox_items = get_inbox_items(&data_dir)?;
@@ -91,13 +99,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
         Command::Sync => {
             let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
-            match get_sync_data(&data_dir) {
-                // HACK: need to check the error type!
-                Err(_) => full_sync(&sync_url, &api_token, &data_dir).await?,
-                Ok(mut sync_data) => {
-                    update_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
-                }
-            }
+            full_sync(&sync_url, &api_token, &data_dir).await?;
         }
     };
 
@@ -208,13 +210,16 @@ async fn full_sync(
     api_token: &String,
     data_dir: &PathBuf,
 ) -> Result<(), Box<dyn Error>> {
+    let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
+    let mut commands = get_commands(&commands_file_path)?;
+
     let request_body = Request {
         sync_token: "*".to_string(),
         resource_types: vec!["all".to_string()],
-        commands: vec![],
+        commands: commands.clone(),
     };
 
-    print!("Performing a full sync... ");
+    print!("Syncing with Todoist server... ");
     io::stdout().flush()?;
 
     let client = reqwest::Client::new();
@@ -228,6 +233,21 @@ async fn full_sync(
         .await?;
     println!("Done.");
 
+    // update the commands
+    resp.temp_id_mapping.iter().for_each(|(temp_id, _)| {
+        // remove the matching command
+        commands = commands
+            .clone()
+            .into_iter()
+            .filter(
+                |sync::Command::AddItem(AddItemCommand {
+                     temp_id: command_temp_id,
+                     ..
+                 })| command_temp_id != temp_id,
+            )
+            .collect();
+    });
+
     let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
 
     // store in file
@@ -236,10 +256,13 @@ async fn full_sync(
     serde_json::to_writer_pretty(file, &resp)?;
     println!("Stored sync data in '{}'.", sync_storage_path.display());
 
+    // update the commands file
+    fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
+
     Ok(())
 }
 
-async fn update_sync(
+async fn incremental_sync(
     sync_data: &mut Response,
     sync_url: &String,
     api_token: &String,
@@ -247,13 +270,7 @@ async fn update_sync(
 ) -> Result<(), Box<dyn Error>> {
     // get commands that we need to send
     let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
-
-    let mut commands: Vec<sync::Command> = if commands_file_path.exists() {
-        let file = fs::read_to_string(&commands_file_path)?;
-        serde_json::from_str::<Vec<sync::Command>>(&file)?
-    } else {
-        Vec::new()
-    };
+    let mut commands = get_commands(&commands_file_path)?;
 
     let request_body = Request {
         sync_token: sync_data.sync_token.clone(),
@@ -315,4 +332,14 @@ async fn update_sync(
     fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
 
     Ok(())
+}
+
+fn get_commands(commands_file_path: &PathBuf) -> Result<Vec<sync::Command>, Box<dyn Error>> {
+    let commands: Vec<sync::Command> = if commands_file_path.exists() {
+        let file = fs::read_to_string(commands_file_path)?;
+        serde_json::from_str::<Vec<sync::Command>>(&file)?
+    } else {
+        Vec::new()
+    };
+    Ok(commands)
 }
