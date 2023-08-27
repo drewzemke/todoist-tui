@@ -96,8 +96,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let inbox_items = get_inbox_items(&data_dir)?;
 
             println!("Inbox: ");
-            for Item { content, .. } in inbox_items {
-                println!("- {content}");
+            for (index, Item { content, .. }) in inbox_items.iter().enumerate() {
+                println!("[{}] {content}", index + 1);
             }
         }
         Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
@@ -112,7 +112,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    println!("Bye!");
     Ok(())
 }
 

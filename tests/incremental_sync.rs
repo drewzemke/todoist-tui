@@ -120,8 +120,8 @@ pub mod sync {
 
         // check output
         cmd.assert()
-            .stdout(predicates::str::contains("- Todo One!"))
-            .stdout(predicates::str::contains("- Todo Two!"))
+            .stdout(predicates::str::contains("[1] Todo One!"))
+            .stdout(predicates::str::contains("[2] Todo Two!"))
             .code(0);
 
         Ok(())
