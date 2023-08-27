@@ -1,21 +1,39 @@
 # Drew's Rust Todoist Client / TUI App 
-Woo! 
+
+## CLI Usage
+
+```shell
+      # Get your API token from the Todoist web app first, then store it:
+      todoist set-token [your_api_key]
+
+      # Sync your data with Todoist's servers:
+      todoist sync
+
+      # List the contents of your inbox:
+      todoist list
+
+      # Add a todo to your inbox:
+      todoist add "Do a barrel roll!"
+```
 
 ---
 
 ## Just my notes and task tracking, please ignore
 
-### get syncin'
-- [ ] full sync to read data, store it in a file (along with last sync date)
-- [ ] update existing flows (or make copies?) to mutate local data rather than do api calls
-- [ ] incremental sync to update server data
-      (make it a `--sync` option that runs before/after read/write operations?)
+### Next up:
+- [ ] complete a todo
+- [ ] add/display a todo with a due date
+- [ ] find a better name for this app ._.
 
 ### e2e flows -- positive scenarios
 - [x] add a todo when user data (namely, inbox id) is already stored
 - [x] add a todo when user data doesn't exist (so we need to get it!)
 - [x] set the api token
-- [ ] complete a todo
+
+### get syncin'
+- [x] full sync to read data, store it in a file (along with last sync date)
+- [x] update existing flows (or make copies?) to mutate local data rather than do api calls
+- [x] incremental sync to update server data
 
 ### negative scenarios
 - [x] missing api token

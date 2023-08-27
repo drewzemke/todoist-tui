@@ -35,7 +35,7 @@ enum Command {
         todo: String,
 
         /// Don't sync data with the server.
-        #[arg(long = "no-sync")]
+        #[arg(long = "no-sync", short)]
         no_sync: bool,
     },
 
@@ -52,7 +52,11 @@ enum Command {
 
     /// Sync data with the Todoist server.
     #[command()]
-    Sync,
+    Sync {
+        /// Only sync changes made locally since the last full sync.
+        #[arg(long, short)]
+        incremental: bool,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -61,7 +65,7 @@ struct Config {
 }
 
 const SYNC_URL: &str = "https://api.todoist.com/sync/v9";
-const MISSING_API_TOKEN_MESSAGE : &str = "Could not find an API token. Go to https://todoist.com/app/settings/integrations/developer to get yours, then re-run with '--set-api-token <TOKEN>'.";
+const MISSING_API_TOKEN_MESSAGE : &str = "Could not find an API token. Go to https://todoist.com/app/settings/integrations/developer to get yours, then re-run with command 'set-token <TOKEN>'.";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -97,9 +101,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
         }
         Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
-        Command::Sync => {
+        Command::Sync { incremental } => {
             let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
-            full_sync(&sync_url, &api_token, &data_dir).await?;
+            if incremental {
+                let mut sync_data = get_sync_data(&data_dir)?;
+                incremental_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
+            } else {
+                full_sync(&sync_url, &api_token, &data_dir).await?;
+            }
         }
     };
 
@@ -219,7 +228,7 @@ async fn full_sync(
         commands: commands.clone(),
     };
 
-    print!("Syncing with Todoist server... ");
+    print!("Syncing... ");
     io::stdout().flush()?;
 
     let client = reqwest::Client::new();
@@ -252,9 +261,8 @@ async fn full_sync(
 
     // store in file
     fs::create_dir_all(Path::new(data_dir).join("data"))?;
-    let file = fs::File::create(&sync_storage_path)?;
+    let file = fs::File::create(sync_storage_path)?;
     serde_json::to_writer_pretty(file, &resp)?;
-    println!("Stored sync data in '{}'.", sync_storage_path.display());
 
     // update the commands file
     fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
@@ -279,7 +287,7 @@ async fn incremental_sync(
         commands: commands.clone(),
     };
 
-    print!("Syncing latest changes...");
+    print!("Syncing... ");
     io::stdout().flush()?;
 
     let client = reqwest::Client::new();
@@ -324,9 +332,8 @@ async fn incremental_sync(
 
     // store in file
     fs::create_dir_all(Path::new(data_dir).join("data"))?;
-    let file = fs::File::create(&sync_storage_path)?;
+    let file = fs::File::create(sync_storage_path)?;
     serde_json::to_writer_pretty(file, &sync_data)?;
-    println!("Stored sync data in '{}'.", sync_storage_path.display());
 
     // update the commands file
     fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
