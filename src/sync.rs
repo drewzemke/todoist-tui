@@ -33,25 +33,32 @@ pub struct Request {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(untagged)]
-pub enum Command {
-    AddItem(AddItemCommand),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AddItemCommand {
+pub struct Command {
     #[serde(rename = "type")]
     pub request_type: String,
-
-    pub temp_id: Uuid,
     pub uuid: Uuid,
-    pub args: AddItemRequestArgs,
+    pub temp_id: Option<Uuid>,
+    pub args: CommandArgs,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct AddItemRequestArgs {
+#[serde(untagged)]
+pub enum CommandArgs {
+    AddItemCommandArgs(AddItemCommandArgs),
+    CompleteItemCommandArgs(CompleteItemCommandArgs),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AddItemCommandArgs {
     pub project_id: String,
     pub content: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CompleteItemCommandArgs {
+    pub id: String,
+    // TODO:
+    // pub completed_date: ????,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -71,7 +78,7 @@ pub struct Project {
     pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Item {
     pub id: String,
     pub project_id: String,

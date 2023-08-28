@@ -5,8 +5,8 @@ mod test_utils;
 pub mod e2e {
     use std::{collections::HashMap, fs};
     use todoist::sync::{
-        self, AddItemCommand, Item, Project, ProjectDataRequest, ProjectDataResponse, Request,
-        Response, User,
+        self, AddItemCommandArgs, CommandArgs, Item, Project, ProjectDataRequest,
+        ProjectDataResponse, Request, Response, User,
     };
 
     use crate::test_utils::{ApiMockBuilder, FsMockBuilder};
@@ -28,25 +28,31 @@ pub mod e2e {
         let mock_data_dir = mock_fs.path();
 
         // set up mock server
-        let mock_server = ApiMockBuilder::new()
-            .await
-            .mock_response(
-                "sync",
-                |request: Request| {
-                    let sync::Command::AddItem(AddItemCommand { ref args, .. }) =
-                        request.commands[0];
-                    args.project_id == "MOCK_INBOX_PROJECT_ID"
-                },
-                Response {
-                    full_sync: true,
-                    sync_status: None,
-                    sync_token: String::from("MOCK_SYNC_TOKEN"),
-                    temp_id_mapping: HashMap::new(),
-                    user: None,
-                    items: vec![],
-                },
-            )
-            .await;
+        let mock_server =
+            ApiMockBuilder::new()
+                .await
+                .mock_response(
+                    "sync",
+                    |request: Request| match &request.commands[0] {
+                        sync::Command {
+                            args:
+                                CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
+                                    project_id, ..
+                                }),
+                            ..
+                        } => project_id == "MOCK_INBOX_PROJECT_ID",
+                        _ => false,
+                    },
+                    Response {
+                        full_sync: true,
+                        sync_status: None,
+                        sync_token: String::from("MOCK_SYNC_TOKEN"),
+                        temp_id_mapping: HashMap::new(),
+                        user: None,
+                        items: vec![],
+                    },
+                )
+                .await;
         let server_url = mock_server.uri();
 
         // run the thing
@@ -73,50 +79,52 @@ pub mod e2e {
         let mock_data_dir = mock_fs.path();
 
         // set up mock server
-        let mock_server = ApiMockBuilder::new()
-            .await
-            .mock_response(
-                "sync",
-                |request: Request| {
-                    request
-                        .resource_types
-                        .get(0)
-                        .is_some_and(|resource| resource == "user")
-                },
-                Response {
-                    full_sync: true,
-                    sync_status: None,
-                    sync_token: String::from("MOCK_SYNC_TOKEN"),
-                    temp_id_mapping: HashMap::new(),
-                    user: Some(User {
-                        full_name: "Drew".to_string(),
-                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                    }),
-                    items: vec![],
-                },
-            )
-            .await
-            .mock_response(
-                "sync",
-                |request: Request| {
-                    if let Some(sync::Command::AddItem(AddItemCommand { args, .. })) =
-                        request.commands.get(0)
-                    {
-                        args.project_id == "MOCK_INBOX_PROJECT_ID"
-                    } else {
-                        false
-                    }
-                },
-                Response {
-                    full_sync: true,
-                    sync_status: None,
-                    sync_token: String::from("MOCK_SYNC_TOKEN"),
-                    temp_id_mapping: HashMap::new(),
-                    user: None,
-                    items: vec![],
-                },
-            )
-            .await;
+        let mock_server =
+            ApiMockBuilder::new()
+                .await
+                .mock_response(
+                    "sync",
+                    |request: Request| {
+                        request
+                            .resource_types
+                            .get(0)
+                            .is_some_and(|resource| resource == "user")
+                    },
+                    Response {
+                        full_sync: true,
+                        sync_status: None,
+                        sync_token: String::from("MOCK_SYNC_TOKEN"),
+                        temp_id_mapping: HashMap::new(),
+                        user: Some(User {
+                            full_name: "Drew".to_string(),
+                            inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                        }),
+                        items: vec![],
+                    },
+                )
+                .await
+                .mock_response(
+                    "sync",
+                    |request: Request| match &request.commands[0] {
+                        sync::Command {
+                            args:
+                                CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
+                                    project_id, ..
+                                }),
+                            ..
+                        } => project_id == "MOCK_INBOX_PROJECT_ID",
+                        _ => false,
+                    },
+                    Response {
+                        full_sync: true,
+                        sync_status: None,
+                        sync_token: String::from("MOCK_SYNC_TOKEN"),
+                        temp_id_mapping: HashMap::new(),
+                        user: None,
+                        items: vec![],
+                    },
+                )
+                .await;
         let server_url = mock_server.uri();
 
         // run the thing

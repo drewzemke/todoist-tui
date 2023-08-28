@@ -8,7 +8,9 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
-use todoist::sync::{self, AddItemCommand, AddItemRequestArgs, Item, Request, Response};
+use todoist::sync::{
+    self, AddItemCommandArgs, CommandArgs, CompleteItemCommandArgs, Item, Request, Response,
+};
 use uuid::Uuid;
 
 #[derive(Parser)]
@@ -17,43 +19,54 @@ struct Args {
     #[command(subcommand)]
     command: Command,
 
-    /// Override the URL for the Todoist Sync API (mostly for testing purposes).
+    /// Override the URL for the Todoist Sync API (mostly for testing purposes)
     #[arg(long = "sync-url", hide = true)]
     sync_url: Option<String>,
 
-    /// Override the local app storage directory (mostly for testing purposes).
+    /// Override the local app storage directory (mostly for testing purposes)
     #[arg(long = "local-dir", hide = true)]
     local_dir: Option<String>,
 }
 
 #[derive(Subcommand)]
 enum Command {
-    /// Add a new todo to your inbox.
+    /// Add a new todo to your inbox
     #[command(name = "add")]
     AddTodo {
-        /// The text of the todo.
+        /// The text of the todo
         todo: String,
 
-        /// Don't sync data with the server.
+        /// Don't sync data with the server
         #[arg(long = "no-sync", short)]
         no_sync: bool,
     },
 
-    /// List the items in your inbox.
+    /// Mark a todo in the inbox complete
+    #[command(name = "complete")]
+    CompleteTodo {
+        /// The number of the todo that's displayed with the `list` command
+        number: usize,
+
+        /// Don't sync data with the server
+        #[arg(long = "no-sync", short)]
+        no_sync: bool,
+    },
+
+    /// List the items in your inbox
     #[command(name = "list")]
     ListInbox,
 
-    /// Store a Todoist API token.
+    /// Store a Todoist API token
     #[command(name = "set-token")]
     SetApiToken {
-        /// The Todoist API token.
+        /// The Todoist API token
         token: String,
     },
 
-    /// Sync data with the Todoist server.
+    /// Sync data with the Todoist server
     #[command()]
     Sync {
-        /// Only sync changes made locally since the last full sync.
+        /// Only sync changes made locally since the last full sync
         #[arg(long, short)]
         incremental: bool,
     },
@@ -85,7 +98,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Command::AddTodo { todo, no_sync } => {
             // FIXME: probably want to split up the network/file responsibilities here
             add_item(&data_dir, &todo)?;
-            println!("Todo '{todo}' added to inbox.");
+            println!("'{todo}' added to inbox.");
+            if !no_sync {
+                let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
+                let mut sync_data = get_sync_data(&data_dir)?;
+                incremental_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
+            }
+        }
+        Command::CompleteTodo { number, no_sync } => {
+            // FIXME: probably want to split up the network/file responsibilities here
+            let removed_item = complete_item(&data_dir, number)?;
+            println!("'{}' marked complete.", removed_item.content);
             if !no_sync {
                 let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
                 let mut sync_data = get_sync_data(&data_dir)?;
@@ -172,19 +195,63 @@ fn add_item(data_dir: &PathBuf, item: &str) -> Result<(), Box<dyn Error>> {
         Vec::new()
     };
 
-    commands.push(sync::Command::AddItem(AddItemCommand {
+    commands.push(sync::Command {
         request_type: "item_add".to_owned(),
-        temp_id: item_id,
+        temp_id: Some(item_id),
         uuid: Uuid::new_v4(),
-        args: AddItemRequestArgs {
+        args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
             project_id: inbox_id.clone(),
             content: item.to_owned(),
-        },
-    }));
+        }),
+    });
 
     fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
 
     Ok(())
+}
+
+fn complete_item(data_dir: &PathBuf, number: usize) -> Result<Item, Box<dyn Error>> {
+    // read in the stored data
+    let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
+
+    let file = fs::read_to_string(sync_file_path)?;
+    let mut data = serde_json::from_str::<Response>(&file)?;
+
+    // look at the current inbox and determine which task is targeted
+    // FIXME: good error handling!!
+    let target_item = get_inbox_items(data_dir)?
+        .get(number - 1)
+        .unwrap()
+        .to_owned();
+
+    // // store the data
+    // TODO: update the item's status
+    //  let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
+    //  let file = fs::File::create(sync_storage_path)?;
+    //  serde_json::to_writer_pretty(file, &data)?;
+
+    // create a new command and store it
+    let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
+
+    let mut commands: Vec<sync::Command> = if commands_file_path.exists() {
+        let file = fs::read_to_string(&commands_file_path)?;
+        serde_json::from_str::<Vec<sync::Command>>(&file)?
+    } else {
+        Vec::new()
+    };
+
+    commands.push(sync::Command {
+        request_type: "item_complete".to_owned(),
+        temp_id: None,
+        uuid: Uuid::new_v4(),
+        args: CommandArgs::CompleteItemCommandArgs(CompleteItemCommandArgs {
+            id: target_item.id.clone(),
+        }),
+    });
+
+    fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
+
+    Ok(target_item)
 }
 
 fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>, Box<dyn Error>> {
@@ -248,10 +315,10 @@ async fn full_sync(
             .clone()
             .into_iter()
             .filter(
-                |sync::Command::AddItem(AddItemCommand {
+                |sync::Command {
                      temp_id: command_temp_id,
                      ..
-                 })| command_temp_id != temp_id,
+                 }| command_temp_id.as_ref() != Some(temp_id),
             )
             .collect();
     });
@@ -319,10 +386,10 @@ async fn incremental_sync(
             .clone()
             .into_iter()
             .filter(
-                |sync::Command::AddItem(AddItemCommand {
+                |sync::Command {
                      temp_id: command_temp_id,
                      ..
-                 })| command_temp_id != temp_id,
+                 }| command_temp_id.as_ref() != Some(temp_id),
             )
             .collect();
     });

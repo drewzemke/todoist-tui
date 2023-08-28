@@ -7,7 +7,7 @@ mod test_utils;
 pub mod sync {
     use assert_cmd::Command;
     use std::{collections::HashMap, fs};
-    use todoist::sync::{self, AddItemCommand, AddItemRequestArgs, Item, Request, Response, User};
+    use todoist::sync::{self, AddItemCommandArgs, CommandArgs, Item, Request, Response, User};
     use uuid::Uuid;
 
     use crate::test_utils::{ApiMockBuilder, FsMockBuilder};
@@ -170,7 +170,7 @@ pub mod sync {
 
         // check output
         cmd.assert()
-            .stdout(predicates::str::contains("Todo 'new todo!' added"))
+            .stdout(predicates::str::contains("'new todo!' added"))
             .code(0);
 
         // check that the commands file was created with the correct content
@@ -180,7 +180,67 @@ pub mod sync {
         let file_contents = fs::read_to_string(commands_file)?;
         let commands: Vec<sync::Command> = serde_json::from_str(&file_contents)?;
         assert_eq!(commands.len(), 1);
+        assert_eq!(commands[0].request_type, "item_add");
 
+        Ok(())
+    }
+
+    #[test]
+    fn complete_todo_no_sync() -> Result<(), Box<dyn std::error::Error>> {
+        // create mock and `data/sync.json`
+        let mock_fs = FsMockBuilder::new()?.mock_file_contents(
+            "data/sync.json",
+            // HACK: wrong data type, need a common storage type
+            serde_json::to_string_pretty(&Response {
+                full_sync: true,
+                sync_status: None,
+                sync_token: String::from("MOCK_SYNC_TOKEN"),
+                temp_id_mapping: HashMap::new(),
+                user: Some(User {
+                    full_name: "Drew".to_string(),
+                    inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                }),
+                items: vec![
+                    Item {
+                        id: "MOCK_ITEM_ID_1".to_string(),
+                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                        content: "Todo One!".to_string(),
+                    },
+                    Item {
+                        id: "MOCK_ITEM_ID_2".to_string(),
+                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                        content: "Todo Two!".to_string(),
+                    },
+                ],
+            })?,
+        )?;
+        let mock_data_dir = mock_fs.path();
+
+        // no need to mock the server, but still going to use a fake url to prevent
+        // accidental calls to the real api
+        let server_url = "fake/server/url";
+
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist")?;
+        cmd.arg("--local-dir").arg(mock_data_dir);
+        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("complete").arg("1");
+        cmd.arg("--no-sync");
+
+        // check output
+        cmd.assert()
+            .stdout(predicates::str::contains("'Todo One!' marked complete"))
+            .code(0);
+
+        // check that the commands file was created with the correct content
+        let commands_file = mock_data_dir.join("data").join("commands.json");
+        assert!(commands_file.exists());
+
+        let file_contents = fs::read_to_string(commands_file)?;
+        let commands: Vec<sync::Command> = serde_json::from_str(&file_contents)?;
+        assert_eq!(commands.len(), 1);
+        assert_eq!(commands[0].request_type, "item_complete");
+
+        // TODO: the completed todo should no longer appear when running 'list'
         Ok(())
     }
 
@@ -226,15 +286,15 @@ pub mod sync {
             )?
             .mock_file_contents(
                 "data/commands.json",
-                serde_json::to_string_pretty(&[&sync::Command::AddItem(AddItemCommand {
+                serde_json::to_string_pretty(&[&sync::Command {
                     request_type: "item_add".to_owned(),
-                    temp_id: new_item_temp_id,
+                    temp_id: Some(new_item_temp_id),
                     uuid: Uuid::new_v4(),
-                    args: AddItemRequestArgs {
+                    args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
                         project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                         content: "Todo Two!".to_string(),
-                    },
-                })])?,
+                    }),
+                }])?,
             )?;
         let mock_data_dir = mock_fs.path();
 
@@ -352,15 +412,15 @@ pub mod sync {
             )?
             .mock_file_contents(
                 "data/commands.json",
-                serde_json::to_string_pretty(&[&sync::Command::AddItem(AddItemCommand {
+                serde_json::to_string_pretty(&[&sync::Command {
                     request_type: "item_add".to_owned(),
-                    temp_id: new_item_temp_id,
+                    temp_id: Some(new_item_temp_id),
                     uuid: Uuid::new_v4(),
-                    args: AddItemRequestArgs {
+                    args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
                         project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                         content: "Todo Two!".to_string(),
-                    },
-                })])?,
+                    }),
+                }])?,
             )?;
         let mock_data_dir = mock_fs.path();
 
