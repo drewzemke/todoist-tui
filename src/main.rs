@@ -78,7 +78,6 @@ struct Config {
 }
 
 const SYNC_URL: &str = "https://api.todoist.com/sync/v9";
-const MISSING_API_TOKEN_MESSAGE : &str = "Could not find an API token. Go to https://todoist.com/app/settings/integrations/developer to get yours, then re-run with command 'set-token <TOKEN>'.";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -141,7 +140,11 @@ async fn main() -> Result<()> {
 fn get_api_token(data_dir: &PathBuf) -> Result<String> {
     let auth_file_name = "client_auth.toml";
     let auth_path = Path::new(data_dir).join(auth_file_name);
-    let file = fs::read_to_string(auth_path).context(MISSING_API_TOKEN_MESSAGE)?;
+    let file = fs::read_to_string(auth_path).context(concat!(
+        "Could not find an API token. ",
+        "Go to https://todoist.com/app/settings/integrations/developer to get yours, ",
+        "then re-run with command 'set-token <TOKEN>'."
+    ))?;
     let config: Config = toml::from_str(file.as_str())
         .with_context(|| format!("Could not parse config file '{auth_file_name}'"))?;
 
@@ -218,18 +221,36 @@ fn complete_item(data_dir: &PathBuf, number: usize) -> Result<Item> {
     let mut data = serde_json::from_str::<Response>(&file)?;
 
     // look at the current inbox and determine which task is targeted
-    // FIXME: good error handling!!
-    let target_item = get_inbox_items(data_dir)?
+    let inbox_items = &get_inbox_items(data_dir)?;
+    if number == 0 || number >= inbox_items.len() {
+        bail!(
+            "'{number}' is outside of the valid range. Pass a number between 1 and {}.",
+            inbox_items.len()
+        )
+    }
+
+    // HACK: is there a way around this clone?
+    let target_item = inbox_items
         .get(number - 1)
-        .unwrap()
-        .to_owned();
+        .ok_or_else(|| {
+            anyhow!(
+                "'{number}' is outside of the valid range. Pass a number between 1 and {}.",
+                inbox_items.len()
+            )
+        })?
+        .clone();
 
     // update the item's status store the data
     let storage_item = data
         .items
         .iter_mut()
         .find(|item| item.id == target_item.id)
-        .unwrap();
+        .ok_or_else(|| {
+            anyhow!(
+                "Could not find item in storage that matches '{}'",
+                target_item.content
+            )
+        })?;
     storage_item.checked = true;
     let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
     let file = fs::File::create(sync_storage_path)?;
