@@ -3,28 +3,33 @@
 ## CLI Usage
 
 ```shell
-      # Get your API token from the Todoist web app first, then store it:
-      todoist set-token [your_api_key]
+# Get your API token from the Todoist web app first, then store it:
+todoist set-token [your_api_key]
 
-      # Sync your data with Todoist's servers:
-      todoist sync
+# Sync your data with Todoist's servers:
+todoist sync
 
-      # List the contents of your inbox:
-      todoist list
+# Add some todos to your inbox:
+todoist add "Do a barrel roll!"
+todoist add "Use the boost to get through!"
 
-      # Add a todo to your inbox:
-      todoist add "Do a barrel roll!"
+# List the contents of your inbox:
+todoist list
+> [1] "Do a barrel roll!"
+> [2] "Use the boost to get through!"
+
+# Mark a todo complete using its number in the list:
+todoist complete 2
 ```
 
 ---
 
 ## Just my notes and task tracking, please ignore
 
-
-
 ### Next up:
 - [ ] refactor!
   - [x] bring in `anyhow`
+  - [ ] build a type to represent the data model / storage
   - [ ] separate modules for file handling and api reqs
 
 - [x] complete a todo
