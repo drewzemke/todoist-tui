@@ -3,6 +3,7 @@ mod test_utils;
 
 #[cfg(test)]
 pub mod e2e {
+    use anyhow::Result;
     use std::{collections::HashMap, fs};
     use todoist::sync::{
         self, AddItemCommandArgs, CommandArgs, Item, Project, ProjectDataRequest,
@@ -14,7 +15,7 @@ pub mod e2e {
     #[tokio::test]
     // Ignoring for now, since we're changing the behavior to use incremental sync
     #[ignore]
-    async fn add_to_inbox_when_user_data_exists() -> Result<(), Box<dyn std::error::Error>> {
+    async fn add_to_inbox_when_user_data_exists() -> Result<()> {
         // create mock `client_auth.toml` and `data/user.json`
         let mock_fs = FsMockBuilder::new()?
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?

@@ -5,6 +5,7 @@ mod test_utils;
 
 #[cfg(test)]
 pub mod sync {
+    use anyhow::Result;
     use assert_cmd::Command;
     use std::{collections::HashMap, fs};
     use todoist::sync::{self, AddItemCommandArgs, CommandArgs, Item, Request, Response, User};
@@ -13,7 +14,7 @@ pub mod sync {
     use crate::test_utils::{ApiMockBuilder, FsMockBuilder};
 
     #[tokio::test]
-    async fn full_sync_and_store_data() -> Result<(), Box<dyn std::error::Error>> {
+    async fn full_sync_and_store_data() -> Result<()> {
         // create mock `client_auth.toml` and `data/user.json`
         let mock_fs = FsMockBuilder::new()?
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?
@@ -81,7 +82,7 @@ pub mod sync {
     }
 
     #[test]
-    fn get_inbox_items_from_local() -> Result<(), Box<dyn std::error::Error>> {
+    fn get_inbox_items_from_local() -> Result<()> {
         // create mock `data/sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "data/sync.json",
@@ -132,7 +133,7 @@ pub mod sync {
     }
 
     #[test]
-    fn add_todo_to_local_no_sync() -> Result<(), Box<dyn std::error::Error>> {
+    fn add_todo_to_local_no_sync() -> Result<()> {
         // create mock and `data/sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "data/sync.json",
@@ -192,7 +193,7 @@ pub mod sync {
     }
 
     #[test]
-    fn complete_todo_no_sync() -> Result<(), Box<dyn std::error::Error>> {
+    fn complete_todo_no_sync() -> Result<()> {
         // create mock and `data/sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "data/sync.json",
@@ -263,7 +264,7 @@ pub mod sync {
     }
 
     #[tokio::test]
-    async fn full_sync_send_new_todo() -> Result<(), Box<dyn std::error::Error>> {
+    async fn full_sync_send_new_todo() -> Result<()> {
         let new_item_temp_id = Uuid::new_v4();
 
         // create mock `data/sync.json` and `data/commands.json`
@@ -394,7 +395,7 @@ pub mod sync {
     }
 
     #[tokio::test]
-    async fn incremental_sync_send_new_todo() -> Result<(), Box<dyn std::error::Error>> {
+    async fn incremental_sync_send_new_todo() -> Result<()> {
         let new_item_temp_id = Uuid::new_v4();
 
         // create mock `data/sync.json` and `data/commands.json`

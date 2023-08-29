@@ -20,7 +20,13 @@
 
 ## Just my notes and task tracking, please ignore
 
+
+
 ### Next up:
+- [ ] refactor!
+  - [x] bring in `anyhow`
+  - [ ] separate modules for file handling and api reqs
+
 - [x] complete a todo
   - [ ] attach completed date when completing a todo
 - [ ] add/display a todo with a due date

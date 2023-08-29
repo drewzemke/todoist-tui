@@ -51,23 +51,24 @@ pub use assert_fs_wrapper::FsMockBuilder;
 
 #[cfg(test)]
 mod assert_fs_wrapper {
+    use anyhow::Result;
     use assert_fs::{
         prelude::{FileTouch, FileWriteStr, PathChild},
         TempDir,
     };
-    use std::{error::Error, fmt::Display, path::Path};
+    use std::{fmt::Display, path::Path};
 
     pub struct FsMockBuilder {
         mock_dir: TempDir,
     }
 
     impl FsMockBuilder {
-        pub fn new() -> Result<Self, Box<dyn Error>> {
+        pub fn new() -> Result<Self> {
             let mock_dir = TempDir::new()?;
             Ok(FsMockBuilder { mock_dir })
         }
 
-        pub fn mock_file_contents<T>(self, path: &str, contents: T) -> Result<Self, Box<dyn Error>>
+        pub fn mock_file_contents<T>(self, path: &str, contents: T) -> Result<Self>
         where
             T: Display,
         {

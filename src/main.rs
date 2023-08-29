@@ -1,8 +1,8 @@
 #![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
+use anyhow::{anyhow, bail, Context, Result};
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::{
-    error::Error,
     fs,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -81,7 +81,7 @@ const SYNC_URL: &str = "https://api.todoist.com/sync/v9";
 const MISSING_API_TOKEN_MESSAGE : &str = "Could not find an API token. Go to https://todoist.com/app/settings/integrations/developer to get yours, then re-run with command 'set-token <TOKEN>'.";
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<()> {
     let args = Args::parse();
 
     let sync_url = args.sync_url.unwrap_or(SYNC_URL.into());
@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     } else if let Some(dir) = dirs::data_local_dir() {
         dir.join("tuido")
     } else {
-        return Err("Could not find local data directory.".into());
+        bail!("Could not find local data directory.");
     };
 
     match args.command {
@@ -100,7 +100,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             add_item(&data_dir, &todo)?;
             println!("'{todo}' added to inbox.");
             if !no_sync {
-                let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
+                let api_token = get_api_token(&data_dir)?;
                 let mut sync_data = get_sync_data(&data_dir)?;
                 incremental_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
             }
@@ -110,7 +110,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let removed_item = complete_item(&data_dir, number)?;
             println!("'{}' marked complete.", removed_item.content);
             if !no_sync {
-                let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
+                let api_token = get_api_token(&data_dir)?;
                 let mut sync_data = get_sync_data(&data_dir)?;
                 incremental_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
             }
@@ -125,7 +125,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
         Command::Sync { incremental } => {
-            let api_token = get_api_token(&data_dir).map_err(|_e| MISSING_API_TOKEN_MESSAGE)?;
+            let api_token = get_api_token(&data_dir)?;
             if incremental {
                 let mut sync_data = get_sync_data(&data_dir)?;
                 incremental_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
@@ -138,16 +138,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn get_api_token(data_dir: &PathBuf) -> Result<String, Box<dyn Error>> {
+fn get_api_token(data_dir: &PathBuf) -> Result<String> {
     let auth_file_name = "client_auth.toml";
     let auth_path = Path::new(data_dir).join(auth_file_name);
-    let file = fs::read_to_string(auth_path)?;
-    let config: Config = toml::from_str(file.as_str())?;
+    let file = fs::read_to_string(auth_path).context(MISSING_API_TOKEN_MESSAGE)?;
+    let config: Config = toml::from_str(file.as_str())
+        .with_context(|| format!("Could not parse config file '{auth_file_name}'"))?;
 
     Ok(config.api_token)
 }
 
-fn set_api_token(api_token: String, data_dir: &PathBuf) -> Result<(), Box<dyn Error>> {
+fn set_api_token(api_token: String, data_dir: &PathBuf) -> Result<()> {
     let auth_file_name = "client_auth.toml";
     let auth_path = Path::new(data_dir).join(auth_file_name);
     fs::write(&auth_path, toml::to_string_pretty(&Config { api_token })?)?;
@@ -155,7 +156,7 @@ fn set_api_token(api_token: String, data_dir: &PathBuf) -> Result<(), Box<dyn Er
     Ok(())
 }
 
-fn add_item(data_dir: &PathBuf, item: &str) -> Result<(), Box<dyn Error>> {
+fn add_item(data_dir: &PathBuf, item: &str) -> Result<()> {
     // read in the stored data
     let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
 
@@ -166,9 +167,7 @@ fn add_item(data_dir: &PathBuf, item: &str) -> Result<(), Box<dyn Error>> {
     let inbox_id = &data
         .user
         .as_ref()
-        .ok_or(std::convert::Into::<Box<dyn Error>>::into(
-            "Could not find inbox project id in stored data.",
-        ))?
+        .ok_or(anyhow!("Could not find inbox project id in stored data."))?
         .inbox_project_id;
 
     // FIXME: should Item.id be a uuid?? probs
@@ -211,7 +210,7 @@ fn add_item(data_dir: &PathBuf, item: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn complete_item(data_dir: &PathBuf, number: usize) -> Result<Item, Box<dyn Error>> {
+fn complete_item(data_dir: &PathBuf, number: usize) -> Result<Item> {
     // read in the stored data
     let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
 
@@ -260,7 +259,7 @@ fn complete_item(data_dir: &PathBuf, number: usize) -> Result<Item, Box<dyn Erro
     Ok(target_item)
 }
 
-fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>, Box<dyn Error>> {
+fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>> {
     let data = get_sync_data(data_dir)?;
 
     // get the items with the correct id
@@ -272,11 +271,11 @@ fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>, Box<dyn Error>> {
             .collect();
         Ok(items)
     } else {
-        Err("Could not find inbox project id in stored data.".into())
+        bail!("Could not find inbox project id in stored data.")
     }
 }
 
-fn get_sync_data(data_dir: &PathBuf) -> Result<Response, Box<dyn Error>> {
+fn get_sync_data(data_dir: &PathBuf) -> Result<Response> {
     // read in the stored data
     let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
 
@@ -286,11 +285,7 @@ fn get_sync_data(data_dir: &PathBuf) -> Result<Response, Box<dyn Error>> {
     Ok(data)
 }
 
-async fn full_sync(
-    sync_url: &String,
-    api_token: &String,
-    data_dir: &PathBuf,
-) -> Result<(), Box<dyn Error>> {
+async fn full_sync(sync_url: &String, api_token: &String, data_dir: &PathBuf) -> Result<()> {
     let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
     let mut commands = get_commands(&commands_file_path)?;
 
@@ -347,7 +342,7 @@ async fn incremental_sync(
     sync_url: &String,
     api_token: &String,
     data_dir: &PathBuf,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     // get commands that we need to send
     let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
     let mut commands = get_commands(&commands_file_path)?;
@@ -413,7 +408,7 @@ async fn incremental_sync(
     Ok(())
 }
 
-fn get_commands(commands_file_path: &PathBuf) -> Result<Vec<sync::Command>, Box<dyn Error>> {
+fn get_commands(commands_file_path: &PathBuf) -> Result<Vec<sync::Command>> {
     let commands: Vec<sync::Command> = if commands_file_path.exists() {
         let file = fs::read_to_string(commands_file_path)?;
         serde_json::from_str::<Vec<sync::Command>>(&file)?
