@@ -49,11 +49,13 @@ pub mod sync {
                             id: "MOCK_ITEM_ID_1".to_string(),
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo One!".to_string(),
+                            checked: false,
                         },
                         Item {
                             id: "MOCK_ITEM_ID_2".to_string(),
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Two!".to_string(),
+                            checked: false,
                         },
                     ],
                 },
@@ -98,11 +100,13 @@ pub mod sync {
                         id: "MOCK_ITEM_ID_1".to_string(),
                         project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                         content: "Todo One!".to_string(),
+                        checked: false,
                     },
                     Item {
                         id: "MOCK_ITEM_ID_2".to_string(),
                         project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                         content: "Todo Two!".to_string(),
+                        checked: false,
                     },
                 ],
             })?,
@@ -147,11 +151,13 @@ pub mod sync {
                         id: "MOCK_ITEM_ID_1".to_string(),
                         project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                         content: "Todo One!".to_string(),
+                        checked: false,
                     },
                     Item {
                         id: "MOCK_ITEM_ID_2".to_string(),
                         project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                         content: "Todo Two!".to_string(),
+                        checked: false,
                     },
                 ],
             })?,
@@ -205,11 +211,13 @@ pub mod sync {
                         id: "MOCK_ITEM_ID_1".to_string(),
                         project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                         content: "Todo One!".to_string(),
+                        checked: false,
                     },
                     Item {
                         id: "MOCK_ITEM_ID_2".to_string(),
                         project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                         content: "Todo Two!".to_string(),
+                        checked: false,
                     },
                 ],
             })?,
@@ -241,6 +249,16 @@ pub mod sync {
         assert_eq!(commands[0].request_type, "item_complete");
 
         // TODO: the completed todo should no longer appear when running 'list'
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist")?;
+        cmd.arg("--local-dir").arg(mock_data_dir);
+        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("list");
+
+        // check output again
+        cmd.assert()
+            .stdout(predicates::str::contains("[1] Todo Two!"))
+            .code(0);
+
         Ok(())
     }
 
@@ -275,11 +293,13 @@ pub mod sync {
                             id: "MOCK_ITEM_ID_1".to_string(),
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo One!".to_string(),
+                            checked: false,
                         },
                         Item {
                             id: new_item_temp_id.to_string(),
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Two!".to_string(),
+                            checked: false,
                         },
                     ],
                 })?,
@@ -321,16 +341,19 @@ pub mod sync {
                             id: "MOCK_ITEM_ID_1".to_string(),
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo One!".to_string(),
+                            checked: false,
                         },
                         Item {
                             id: "MOCK_ITEM_ID_2_NEW".to_string(),
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Two!".to_string(),
+                            checked: false,
                         },
                         Item {
                             id: "MOCK_ITEM_ID_3".to_string(),
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Three!".to_string(),
+                            checked: false,
                         },
                     ],
                 },
@@ -401,11 +424,13 @@ pub mod sync {
                             id: "MOCK_ITEM_ID_1".to_string(),
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo One!".to_string(),
+                            checked: false,
                         },
                         Item {
                             id: new_item_temp_id.to_string(),
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Two!".to_string(),
+                            checked: false,
                         },
                     ],
                 })?,

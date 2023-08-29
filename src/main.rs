@@ -177,6 +177,7 @@ fn add_item(data_dir: &PathBuf, item: &str) -> Result<(), Box<dyn Error>> {
         id: item_id.to_string(),
         project_id: inbox_id.clone(),
         content: item.to_owned(),
+        checked: false,
     };
     data.items.push(new_item);
 
@@ -224,11 +225,16 @@ fn complete_item(data_dir: &PathBuf, number: usize) -> Result<Item, Box<dyn Erro
         .unwrap()
         .to_owned();
 
-    // // store the data
-    // TODO: update the item's status
-    //  let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
-    //  let file = fs::File::create(sync_storage_path)?;
-    //  serde_json::to_writer_pretty(file, &data)?;
+    // update the item's status store the data
+    let storage_item = data
+        .items
+        .iter_mut()
+        .find(|item| item.id == target_item.id)
+        .unwrap();
+    storage_item.checked = true;
+    let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
+    let file = fs::File::create(sync_storage_path)?;
+    serde_json::to_writer_pretty(file, &data)?;
 
     // create a new command and store it
     let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
@@ -262,7 +268,7 @@ fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>, Box<dyn Error>> {
         let items: Vec<Item> = data
             .items
             .into_iter()
-            .filter(|item| item.project_id == inbox_id)
+            .filter(|item| item.project_id == inbox_id && !item.checked)
             .collect();
         Ok(items)
     } else {

@@ -83,4 +83,5 @@ pub struct Item {
     pub id: String,
     pub project_id: String,
     pub content: String,
+    pub checked: bool,
 }

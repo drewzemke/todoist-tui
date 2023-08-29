@@ -21,7 +21,8 @@
 ## Just my notes and task tracking, please ignore
 
 ### Next up:
-- [ ] complete a todo
+- [x] complete a todo
+  - [ ] attach completed date when completing a todo
 - [ ] add/display a todo with a due date
 - [ ] find a better name for this app ._.
 
