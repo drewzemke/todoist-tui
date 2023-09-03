@@ -1,6 +1,8 @@
 use super::{Request, Response};
 use anyhow::Result;
 
+const SYNC_URL: &str = "https://api.todoist.com/sync/v9";
+
 pub struct Client {
     client: reqwest::Client,
     sync_url: String,
@@ -9,9 +11,9 @@ pub struct Client {
 
 impl Client {
     #[must_use]
-    pub fn new(sync_url: String, api_token: String) -> Self {
+    pub fn new(api_token: String, sync_url_override: Option<String>) -> Self {
         Client {
-            sync_url,
+            sync_url: sync_url_override.unwrap_or(SYNC_URL.to_string()),
             api_token,
             client: reqwest::Client::new(),
         }

@@ -78,13 +78,9 @@ struct Config {
     api_token: String,
 }
 
-const SYNC_URL: &str = "https://api.todoist.com/sync/v9";
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-
-    let sync_url = args.sync_url.unwrap_or(SYNC_URL.into());
 
     let data_dir = if let Some(dir) = args.local_dir {
         PathBuf::from_str(dir.as_str())?
@@ -102,7 +98,7 @@ async fn main() -> Result<()> {
             if !no_sync {
                 let api_token = get_api_token(&data_dir)?;
                 let mut sync_data = get_sync_data(&data_dir)?;
-                let client = Client::new(sync_url, api_token);
+                let client = Client::new(api_token, args.sync_url);
                 incremental_sync(&mut sync_data, &client, &data_dir).await?;
             }
         }
@@ -113,7 +109,7 @@ async fn main() -> Result<()> {
             if !no_sync {
                 let api_token = get_api_token(&data_dir)?;
                 let mut sync_data = get_sync_data(&data_dir)?;
-                let client = Client::new(sync_url, api_token);
+                let client = Client::new(api_token, args.sync_url);
                 incremental_sync(&mut sync_data, &client, &data_dir).await?;
             }
         }
@@ -128,7 +124,7 @@ async fn main() -> Result<()> {
         Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
         Command::Sync { incremental } => {
             let api_token = get_api_token(&data_dir)?;
-            let client = Client::new(sync_url, api_token);
+            let client = Client::new(api_token, args.sync_url);
             if incremental {
                 let mut sync_data = get_sync_data(&data_dir)?;
                 incremental_sync(&mut sync_data, &client, &data_dir).await?;
