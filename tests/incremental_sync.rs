@@ -9,7 +9,7 @@ pub mod sync {
     use assert_cmd::Command;
     use std::{collections::HashMap, fs};
     use todoist::sync::{
-        self, AddItemCommandArgs, CommandArgs, Item, Model, Request, Response, ResponseMeta, User,
+        self, AddItemCommandArgs, CommandArgs, Item, Model, Request, Response, User,
     };
     use uuid::Uuid;
 
@@ -39,33 +39,28 @@ pub mod sync {
                         && request.resource_types.get(0).is_some_and(|s| s == "all")
                 },
                 Response {
-                    data: Model {
-                        sync_token: String::from("MOCK_SYNC_TOKEN"),
-                            
-                        user: Some(User {
-                            full_name: "Drew".to_string(),
-                            inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                        }),
-                        items: vec![
-                            Item {
-                                id: "MOCK_ITEM_ID_1".to_string(),
-                                project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                                content: "Todo One!".to_string(),
-                                checked: false,
-                            },
-                            Item {
-                                id: "MOCK_ITEM_ID_2".to_string(),
-                                project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                                content: "Todo Two!".to_string(),
-                                checked: false,
-                            },
-                        ],
-                    },
-                    meta: ResponseMeta {
-                        full_sync: true,
-                        sync_status: None,
-                        temp_id_mapping: HashMap::new(),
-                    },
+                    full_sync: true,
+                    items: vec![
+                        Item {
+                            id: "MOCK_ITEM_ID_1".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            content: "Todo One!".to_string(),
+                            checked: false,
+                        },
+                        Item {
+                            id: "MOCK_ITEM_ID_2".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            content: "Todo Two!".to_string(),
+                            checked: false,
+                        },
+                    ],
+                    sync_status: None,
+                    sync_token: String::from("MOCK_SYNC_TOKEN"),
+                    temp_id_mapping: HashMap::new(),
+                    user: Some(User {
+                        full_name: "Drew".to_string(),
+                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                    }),
                 },
             )
             .await;
@@ -95,10 +90,10 @@ pub mod sync {
             "data/sync.json",
             serde_json::to_string_pretty(&Model {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
-                user: Some(User {
+                user: User {
                     full_name: "Drew".to_string(),
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                }),
+                },
                 items: vec![
                     Item {
                         id: "MOCK_ITEM_ID_1".to_string(),
@@ -142,10 +137,10 @@ pub mod sync {
             "data/sync.json",
             serde_json::to_string_pretty(&Model {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
-                user: Some(User {
+                user: User {
                     full_name: "Drew".to_string(),
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                }),
+                },
                 items: vec![
                     Item {
                         id: "MOCK_ITEM_ID_1".to_string(),
@@ -198,10 +193,10 @@ pub mod sync {
             "data/sync.json",
             serde_json::to_string_pretty(&Model {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
-                user: Some(User {
+                user: User {
                     full_name: "Drew".to_string(),
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                }),
+                },
                 items: vec![
                     Item {
                         id: "MOCK_ITEM_ID_1".to_string(),
@@ -276,10 +271,10 @@ pub mod sync {
                 "data/sync.json",
                 serde_json::to_string_pretty(&Model {
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
-                    user: Some(User {
+                    user: User {
                         full_name: "Drew".to_string(),
                         inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                    }),
+                    },
                     items: vec![
                         Item {
                             id: "MOCK_ITEM_ID_1".to_string(),
@@ -320,38 +315,34 @@ pub mod sync {
                         && request.resource_types.get(0).is_some_and(|s| s == "all")
                 },
                 Response {
-                    data: Model {
-                        sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
-                        user: None,
-                        items: vec![
-                            Item {
-                                id: "MOCK_ITEM_ID_1".to_string(),
-                                project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                                content: "Todo One!".to_string(),
-                                checked: false,
-                            },
-                            Item {
-                                id: "MOCK_ITEM_ID_2_NEW".to_string(),
-                                project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                                content: "Todo Two!".to_string(),
-                                checked: false,
-                            },
-                            Item {
-                                id: "MOCK_ITEM_ID_3".to_string(),
-                                project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                                content: "Todo Three!".to_string(),
-                                checked: false,
-                            },
-                        ],
-                    },
-                    meta: ResponseMeta {
-                        full_sync: false,
-                        sync_status: Some(HashMap::from([("UUID".to_string(), "ok".to_string())])),
-                        temp_id_mapping: HashMap::from([(
-                            new_item_temp_id,
-                            "MOCK_ITEM_ID_2_NEW".to_string(),
-                        )]),
-                    },
+                    full_sync: false,
+                    items: vec![
+                        Item {
+                            id: "MOCK_ITEM_ID_1".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            content: "Todo One!".to_string(),
+                            checked: false,
+                        },
+                        Item {
+                            id: "MOCK_ITEM_ID_2_NEW".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            content: "Todo Two!".to_string(),
+                            checked: false,
+                        },
+                        Item {
+                            id: "MOCK_ITEM_ID_3".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            content: "Todo Three!".to_string(),
+                            checked: false,
+                        },
+                    ],
+                    sync_status: Some(HashMap::from([("UUID".to_string(), "ok".to_string())])),
+                    sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
+                    temp_id_mapping: HashMap::from([(
+                        new_item_temp_id,
+                        "MOCK_ITEM_ID_2_NEW".to_string(),
+                    )]),
+                    user: None,
                 },
             )
             .await;
@@ -407,10 +398,10 @@ pub mod sync {
                 "data/sync.json",
                 serde_json::to_string_pretty(&Model {
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
-                    user: Some(User {
+                    user: User {
                         full_name: "Drew".to_string(),
                         inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                    }),
+                    },
                     items: vec![
                         Item {
                             id: "MOCK_ITEM_ID_1".to_string(),
@@ -451,19 +442,15 @@ pub mod sync {
                         && request.resource_types.get(0).is_some_and(|s| s == "all")
                 },
                 Response {
-                    data: Model {
-                        sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
-                        user: None,
-                        items: vec![],
-                    },
-                    meta: ResponseMeta {
-                        full_sync: false,
-                        sync_status: Some(HashMap::from([("UUID".to_string(), "ok".to_string())])),
-                        temp_id_mapping: HashMap::from([(
-                            new_item_temp_id,
-                            "MOCK_ITEM_ID_2_NEW".to_string(),
-                        )]),
-                    },
+                    full_sync: false,
+                    items: vec![],
+                    sync_status: Some(HashMap::from([("UUID".to_string(), "ok".to_string())])),
+                    sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
+                    temp_id_mapping: HashMap::from([(
+                        new_item_temp_id,
+                        "MOCK_ITEM_ID_2_NEW".to_string(),
+                    )]),
+                    user: None,
                 },
             )
             .await;

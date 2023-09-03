@@ -8,25 +8,25 @@ pub mod client;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Model {
     pub sync_token: String,
-    #[serde(default)]
     pub items: Vec<Item>,
-    pub user: Option<User>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResponseMeta {
-    pub full_sync: bool,
-    // TODO: make value type more specific?
-    pub sync_status: Option<HashMap<String, String>>,
-    pub temp_id_mapping: HashMap<Uuid, String>,
+    pub user: User,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Response {
-    #[serde(flatten)]
-    pub data: Model,
-    #[serde(flatten)]
-    pub meta: ResponseMeta,
+    pub sync_token: String,
+
+    #[serde(default)]
+    pub items: Vec<Item>,
+
+    pub user: Option<User>,
+
+    pub full_sync: bool,
+
+    // TODO: make value type more specific?
+    pub sync_status: Option<HashMap<String, String>>,
+
+    pub temp_id_mapping: HashMap<Uuid, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
