@@ -29,7 +29,7 @@ todoist complete 2
 ### Next up:
 - [ ] refactor!
   - [x] bring in `anyhow`
-  - [ ] build a type to represent the data model / storage
+  - [x] build a type to represent the data model / storage
   - [ ] separate modules for file handling and api reqs
 
 - [x] complete a todo
@@ -65,11 +65,11 @@ todoist complete 2
 
 ## Abstraction Ideas
 
-### `SyncClient`
+### `Client` [DONE]
 - responsible for making/returning requests
 - owns sync url
 - encapsulates reqwest logic
 
-### `FileManager`
+### `FileManager` [IN PROGRESS]
 - owns data and config locations
 - resposible for reading/writing from both locations

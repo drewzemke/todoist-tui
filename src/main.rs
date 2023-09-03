@@ -1,5 +1,5 @@
 #![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, Result};
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -8,9 +8,15 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
-use todoist::sync::{
-    self, client::Client, AddItemCommandArgs, CommandArgs, CompleteItemCommandArgs, Item, Model,
-    Request,
+use todoist::{
+    storage::{
+        config::{Auth, Manager as ConfigManager},
+        file::Manager as FileManager,
+    },
+    sync::{
+        self, client::Client, AddItemCommandArgs, CommandArgs, CompleteItemCommandArgs, Item,
+        Model, Request,
+    },
 };
 use uuid::Uuid;
 
@@ -82,7 +88,7 @@ struct Config {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    let data_dir = if let Some(dir) = args.local_dir {
+    let data_dir = if let Some(dir) = args.local_dir.clone() {
         PathBuf::from_str(dir.as_str())?
     } else if let Some(dir) = dirs::data_local_dir() {
         dir.join("tuido")
@@ -90,13 +96,16 @@ async fn main() -> Result<()> {
         bail!("Could not find local data directory.");
     };
 
+    let file_manager = FileManager::new(args.local_dir)?;
+    let config_manager = ConfigManager::new(&file_manager);
+
     match args.command {
         Command::AddTodo { todo, no_sync } => {
             // FIXME: probably want to split up the network/file responsibilities here
             add_item(&data_dir, &todo)?;
             println!("'{todo}' added to inbox.");
             if !no_sync {
-                let api_token = get_api_token(&data_dir)?;
+                let api_token = config_manager.read_auth_config()?.api_token;
                 let mut sync_data = get_sync_data(&data_dir)?;
                 let client = Client::new(api_token, args.sync_url);
                 incremental_sync(&mut sync_data, &client, &data_dir).await?;
@@ -107,7 +116,7 @@ async fn main() -> Result<()> {
             let removed_item = complete_item(&data_dir, number)?;
             println!("'{}' marked complete.", removed_item.content);
             if !no_sync {
-                let api_token = get_api_token(&data_dir)?;
+                let api_token = config_manager.read_auth_config()?.api_token;
                 let mut sync_data = get_sync_data(&data_dir)?;
                 let client = Client::new(api_token, args.sync_url);
                 incremental_sync(&mut sync_data, &client, &data_dir).await?;
@@ -121,9 +130,12 @@ async fn main() -> Result<()> {
                 println!("[{}] {content}", index + 1);
             }
         }
-        Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
+        Command::SetApiToken { token } => {
+            config_manager.write_auth_config(&Auth { api_token: token })?;
+            println!("Stored API token.");
+        }
         Command::Sync { incremental } => {
-            let api_token = get_api_token(&data_dir)?;
+            let api_token = config_manager.read_auth_config()?.api_token;
             let client = Client::new(api_token, args.sync_url);
             if incremental {
                 let mut sync_data = get_sync_data(&data_dir)?;
@@ -134,28 +146,6 @@ async fn main() -> Result<()> {
         }
     };
 
-    Ok(())
-}
-
-fn get_api_token(data_dir: &PathBuf) -> Result<String> {
-    let auth_file_name = "client_auth.toml";
-    let auth_path = Path::new(data_dir).join(auth_file_name);
-    let file = fs::read_to_string(auth_path).context(concat!(
-        "Could not find an API token. ",
-        "Go to https://todoist.com/app/settings/integrations/developer to get yours, ",
-        "then re-run with command 'set-token <TOKEN>'."
-    ))?;
-    let config: Config = toml::from_str(file.as_str())
-        .with_context(|| format!("Could not parse config file '{auth_file_name}'"))?;
-
-    Ok(config.api_token)
-}
-
-fn set_api_token(api_token: String, data_dir: &PathBuf) -> Result<()> {
-    let auth_file_name = "client_auth.toml";
-    let auth_path = Path::new(data_dir).join(auth_file_name);
-    fs::write(&auth_path, toml::to_string_pretty(&Config { api_token })?)?;
-    println!("Stored API token in '{}'.", auth_path.display());
     Ok(())
 }
 
