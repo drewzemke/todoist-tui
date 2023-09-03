@@ -4,19 +4,27 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Response {
-    pub full_sync: bool,
-
-    // TODO: make value type more specific?
-    pub sync_status: Option<HashMap<String, String>>,
-
+pub struct Model {
     pub sync_token: String,
-    pub temp_id_mapping: HashMap<Uuid, String>,
-
-    pub user: Option<User>,
-
     #[serde(default)]
     pub items: Vec<Item>,
+    pub user: Option<User>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResponseMeta {
+    pub full_sync: bool,
+    // TODO: make value type more specific?
+    pub sync_status: Option<HashMap<String, String>>,
+    pub temp_id_mapping: HashMap<Uuid, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Response {
+    #[serde(flatten)]
+    pub data: Model,
+    #[serde(flatten)]
+    pub meta: ResponseMeta,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -27,9 +35,9 @@ pub struct User {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Request {
-    pub sync_token: String,
-    pub resource_types: Vec<String>,
     pub commands: Vec<Command>,
+    pub resource_types: Vec<String>,
+    pub sync_token: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -8,7 +8,9 @@ pub mod sync {
     use anyhow::Result;
     use assert_cmd::Command;
     use std::{collections::HashMap, fs};
-    use todoist::sync::{self, AddItemCommandArgs, CommandArgs, Item, Request, Response, User};
+    use todoist::sync::{
+        self, AddItemCommandArgs, CommandArgs, Item, Model, Request, Response, ResponseMeta, User,
+    };
     use uuid::Uuid;
 
     use crate::test_utils::{ApiMockBuilder, FsMockBuilder};
@@ -37,28 +39,33 @@ pub mod sync {
                         && request.resource_types.get(0).is_some_and(|s| s == "all")
                 },
                 Response {
-                    full_sync: true,
-                    sync_status: None,
-                    sync_token: String::from("MOCK_SYNC_TOKEN"),
-                    temp_id_mapping: HashMap::new(),
-                    user: Some(User {
-                        full_name: "Drew".to_string(),
-                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                    }),
-                    items: vec![
-                        Item {
-                            id: "MOCK_ITEM_ID_1".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo One!".to_string(),
-                            checked: false,
-                        },
-                        Item {
-                            id: "MOCK_ITEM_ID_2".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo Two!".to_string(),
-                            checked: false,
-                        },
-                    ],
+                    data: Model {
+                        sync_token: String::from("MOCK_SYNC_TOKEN"),
+                            
+                        user: Some(User {
+                            full_name: "Drew".to_string(),
+                            inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                        }),
+                        items: vec![
+                            Item {
+                                id: "MOCK_ITEM_ID_1".to_string(),
+                                project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                                content: "Todo One!".to_string(),
+                                checked: false,
+                            },
+                            Item {
+                                id: "MOCK_ITEM_ID_2".to_string(),
+                                project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                                content: "Todo Two!".to_string(),
+                                checked: false,
+                            },
+                        ],
+                    },
+                    meta: ResponseMeta {
+                        full_sync: true,
+                        sync_status: None,
+                        temp_id_mapping: HashMap::new(),
+                    },
                 },
             )
             .await;
@@ -86,12 +93,8 @@ pub mod sync {
         // create mock `data/sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "data/sync.json",
-            // HACK: wrong data type, need a common storage type
-            serde_json::to_string_pretty(&Response {
-                full_sync: true,
-                sync_status: None,
+            serde_json::to_string_pretty(&Model {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
-                temp_id_mapping: HashMap::new(),
                 user: Some(User {
                     full_name: "Drew".to_string(),
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
@@ -137,12 +140,8 @@ pub mod sync {
         // create mock and `data/sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "data/sync.json",
-            // HACK: wrong data type, need a common storage type
-            serde_json::to_string_pretty(&Response {
-                full_sync: true,
-                sync_status: None,
+            serde_json::to_string_pretty(&Model {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
-                temp_id_mapping: HashMap::new(),
                 user: Some(User {
                     full_name: "Drew".to_string(),
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
@@ -197,12 +196,8 @@ pub mod sync {
         // create mock and `data/sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "data/sync.json",
-            // HACK: wrong data type, need a common storage type
-            serde_json::to_string_pretty(&Response {
-                full_sync: true,
-                sync_status: None,
+            serde_json::to_string_pretty(&Model {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
-                temp_id_mapping: HashMap::new(),
                 user: Some(User {
                     full_name: "Drew".to_string(),
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
@@ -279,12 +274,8 @@ pub mod sync {
             )?
             .mock_file_contents(
                 "data/sync.json",
-                // HACK: wrong data type, need a common storage type
-                serde_json::to_string_pretty(&Response {
-                    full_sync: true,
-                    sync_status: None,
+                serde_json::to_string_pretty(&Model {
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
-                    temp_id_mapping: HashMap::new(),
                     user: Some(User {
                         full_name: "Drew".to_string(),
                         inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
@@ -329,34 +320,38 @@ pub mod sync {
                         && request.resource_types.get(0).is_some_and(|s| s == "all")
                 },
                 Response {
-                    full_sync: false,
-                    sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
-                    sync_status: Some(HashMap::from([("UUID".to_string(), "ok".to_string())])),
-                    temp_id_mapping: HashMap::from([(
-                        new_item_temp_id,
-                        "MOCK_ITEM_ID_2_NEW".to_string(),
-                    )]),
-                    user: None,
-                    items: vec![
-                        Item {
-                            id: "MOCK_ITEM_ID_1".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo One!".to_string(),
-                            checked: false,
-                        },
-                        Item {
-                            id: "MOCK_ITEM_ID_2_NEW".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo Two!".to_string(),
-                            checked: false,
-                        },
-                        Item {
-                            id: "MOCK_ITEM_ID_3".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo Three!".to_string(),
-                            checked: false,
-                        },
-                    ],
+                    data: Model {
+                        sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
+                        user: None,
+                        items: vec![
+                            Item {
+                                id: "MOCK_ITEM_ID_1".to_string(),
+                                project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                                content: "Todo One!".to_string(),
+                                checked: false,
+                            },
+                            Item {
+                                id: "MOCK_ITEM_ID_2_NEW".to_string(),
+                                project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                                content: "Todo Two!".to_string(),
+                                checked: false,
+                            },
+                            Item {
+                                id: "MOCK_ITEM_ID_3".to_string(),
+                                project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                                content: "Todo Three!".to_string(),
+                                checked: false,
+                            },
+                        ],
+                    },
+                    meta: ResponseMeta {
+                        full_sync: false,
+                        sync_status: Some(HashMap::from([("UUID".to_string(), "ok".to_string())])),
+                        temp_id_mapping: HashMap::from([(
+                            new_item_temp_id,
+                            "MOCK_ITEM_ID_2_NEW".to_string(),
+                        )]),
+                    },
                 },
             )
             .await;
@@ -375,7 +370,7 @@ pub mod sync {
         // check that the sync data file was updated with the correct content
         let sync_file = mock_data_dir.join("data").join("sync.json");
         let file_contents = fs::read_to_string(sync_file)?;
-        let sync_data: Response = serde_json::from_str(&file_contents)?;
+        let sync_data: Model = serde_json::from_str(&file_contents)?;
 
         assert_eq!(sync_data.sync_token, "NEW_MOCK_SYNC_TOKEN");
         assert_eq!(sync_data.items.len(), 3);
@@ -410,12 +405,8 @@ pub mod sync {
             )?
             .mock_file_contents(
                 "data/sync.json",
-                // HACK: wrong data type, need a common storage type
-                serde_json::to_string_pretty(&Response {
-                    full_sync: true,
-                    sync_status: None,
+                serde_json::to_string_pretty(&Model {
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
-                    temp_id_mapping: HashMap::new(),
                     user: Some(User {
                         full_name: "Drew".to_string(),
                         inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
@@ -460,15 +451,19 @@ pub mod sync {
                         && request.resource_types.get(0).is_some_and(|s| s == "all")
                 },
                 Response {
-                    full_sync: false,
-                    sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
-                    sync_status: Some(HashMap::from([("UUID".to_string(), "ok".to_string())])),
-                    temp_id_mapping: HashMap::from([(
-                        new_item_temp_id,
-                        "MOCK_ITEM_ID_2_NEW".to_string(),
-                    )]),
-                    user: None,
-                    items: vec![],
+                    data: Model {
+                        sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
+                        user: None,
+                        items: vec![],
+                    },
+                    meta: ResponseMeta {
+                        full_sync: false,
+                        sync_status: Some(HashMap::from([("UUID".to_string(), "ok".to_string())])),
+                        temp_id_mapping: HashMap::from([(
+                            new_item_temp_id,
+                            "MOCK_ITEM_ID_2_NEW".to_string(),
+                        )]),
+                    },
                 },
             )
             .await;
@@ -487,7 +482,7 @@ pub mod sync {
         // check that the sync data file was updated with the correct content
         let sync_file = mock_data_dir.join("data").join("sync.json");
         let file_contents = fs::read_to_string(sync_file)?;
-        let sync_data: Response = serde_json::from_str(&file_contents)?;
+        let sync_data: Model = serde_json::from_str(&file_contents)?;
 
         assert_eq!(sync_data.sync_token, "NEW_MOCK_SYNC_TOKEN");
         assert_eq!(sync_data.items.len(), 2);

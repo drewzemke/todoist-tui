@@ -9,7 +9,7 @@ use std::{
     str::FromStr,
 };
 use todoist::sync::{
-    self, AddItemCommandArgs, CommandArgs, CompleteItemCommandArgs, Item, Request, Response,
+    self, AddItemCommandArgs, CommandArgs, CompleteItemCommandArgs, Item, Model, Request,
 };
 use uuid::Uuid;
 
@@ -164,7 +164,7 @@ fn add_item(data_dir: &PathBuf, item: &str) -> Result<()> {
     let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
 
     let file = fs::read_to_string(sync_file_path)?;
-    let mut data = serde_json::from_str::<Response>(&file)?;
+    let mut data = serde_json::from_str::<Model>(&file)?;
 
     // create a new item and add it to the item list
     let inbox_id = &data
@@ -218,7 +218,7 @@ fn complete_item(data_dir: &PathBuf, number: usize) -> Result<Item> {
     let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
 
     let file = fs::read_to_string(sync_file_path)?;
-    let mut data = serde_json::from_str::<Response>(&file)?;
+    let mut data = serde_json::from_str::<Model>(&file)?;
 
     // look at the current inbox and determine which task is targeted
     let inbox_items = &get_inbox_items(data_dir)?;
@@ -296,13 +296,13 @@ fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>> {
     }
 }
 
-fn get_sync_data(data_dir: &PathBuf) -> Result<Response> {
+fn get_sync_data(data_dir: &PathBuf) -> Result<Model> {
     // read in the stored data
     let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
 
     let file = fs::read_to_string(sync_file_path)?;
     // HACK: wrong type, need a common storage type
-    let data = serde_json::from_str::<Response>(&file)?;
+    let data = serde_json::from_str(&file)?;
     Ok(data)
 }
 
@@ -331,7 +331,7 @@ async fn full_sync(sync_url: &String, api_token: &String, data_dir: &PathBuf) ->
     println!("Done.");
 
     // update the commands
-    resp.temp_id_mapping.iter().for_each(|(temp_id, _)| {
+    resp.meta.temp_id_mapping.iter().for_each(|(temp_id, _)| {
         // remove the matching command
         commands = commands
             .clone()
@@ -359,7 +359,7 @@ async fn full_sync(sync_url: &String, api_token: &String, data_dir: &PathBuf) ->
 }
 
 async fn incremental_sync(
-    sync_data: &mut Response,
+    sync_data: &mut Model,
     sync_url: &String,
     api_token: &String,
     data_dir: &PathBuf,
@@ -391,30 +391,32 @@ async fn incremental_sync(
     println!("Done.");
 
     // update the sync_data with the result
-    sync_data.full_sync = resp.full_sync;
-    sync_data.sync_token = resp.sync_token;
-    resp.temp_id_mapping.iter().for_each(|(temp_id, real_id)| {
-        // HACK: should we do something else if we don't find a match?
-        if let Some(matching_item) = sync_data
-            .items
-            .iter_mut()
-            .find(|item| item.id == temp_id.to_string())
-        {
-            matching_item.id = real_id.clone();
-        }
+    sync_data.sync_token = resp.data.sync_token;
+    resp.meta
+        .temp_id_mapping
+        .iter()
+        .for_each(|(temp_id, real_id)| {
+            // HACK: should we do something else if we don't find a match?
+            if let Some(matching_item) = sync_data
+                .items
+                .iter_mut()
+                .find(|item| item.id == temp_id.to_string())
+            {
+                matching_item.id = real_id.clone();
+            }
 
-        // remove the matching command
-        commands = commands
-            .clone()
-            .into_iter()
-            .filter(
-                |sync::Command {
-                     temp_id: command_temp_id,
-                     ..
-                 }| command_temp_id.as_ref() != Some(temp_id),
-            )
-            .collect();
-    });
+            // remove the matching command
+            commands = commands
+                .clone()
+                .into_iter()
+                .filter(
+                    |sync::Command {
+                         temp_id: command_temp_id,
+                         ..
+                     }| command_temp_id.as_ref() != Some(temp_id),
+                )
+                .collect();
+        });
 
     let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
 
