@@ -9,7 +9,8 @@ use std::{
     str::FromStr,
 };
 use todoist::sync::{
-    self, AddItemCommandArgs, CommandArgs, CompleteItemCommandArgs, Item, Model, Request,
+    self, client::Client, AddItemCommandArgs, CommandArgs, CompleteItemCommandArgs, Item, Model,
+    Request,
 };
 use uuid::Uuid;
 
@@ -101,7 +102,8 @@ async fn main() -> Result<()> {
             if !no_sync {
                 let api_token = get_api_token(&data_dir)?;
                 let mut sync_data = get_sync_data(&data_dir)?;
-                incremental_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
+                let client = Client::new(sync_url, api_token);
+                incremental_sync(&mut sync_data, &client, &data_dir).await?;
             }
         }
         Command::CompleteTodo { number, no_sync } => {
@@ -111,7 +113,8 @@ async fn main() -> Result<()> {
             if !no_sync {
                 let api_token = get_api_token(&data_dir)?;
                 let mut sync_data = get_sync_data(&data_dir)?;
-                incremental_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
+                let client = Client::new(sync_url, api_token);
+                incremental_sync(&mut sync_data, &client, &data_dir).await?;
             }
         }
         Command::ListInbox => {
@@ -125,11 +128,12 @@ async fn main() -> Result<()> {
         Command::SetApiToken { token } => set_api_token(token, &data_dir)?,
         Command::Sync { incremental } => {
             let api_token = get_api_token(&data_dir)?;
+            let client = Client::new(sync_url, api_token);
             if incremental {
                 let mut sync_data = get_sync_data(&data_dir)?;
-                incremental_sync(&mut sync_data, &sync_url, &api_token, &data_dir).await?;
+                incremental_sync(&mut sync_data, &client, &data_dir).await?;
             } else {
-                full_sync(&sync_url, &api_token, &data_dir).await?;
+                full_sync(&client, &data_dir).await?;
             }
         }
     };
@@ -306,7 +310,7 @@ fn get_sync_data(data_dir: &PathBuf) -> Result<Model> {
     Ok(data)
 }
 
-async fn full_sync(sync_url: &String, api_token: &String, data_dir: &PathBuf) -> Result<()> {
+async fn full_sync(client: &Client, data_dir: &PathBuf) -> Result<()> {
     let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
     let mut commands = get_commands(&commands_file_path)?;
 
@@ -319,15 +323,7 @@ async fn full_sync(sync_url: &String, api_token: &String, data_dir: &PathBuf) ->
     print!("Syncing... ");
     io::stdout().flush()?;
 
-    let client = reqwest::Client::new();
-    let resp = client
-        .post(format!("{sync_url}/sync"))
-        .header("Authorization", format!("Bearer {api_token}"))
-        .json(&request_body)
-        .send()
-        .await
-        .map(reqwest::Response::json::<sync::Response>)?
-        .await?;
+    let resp = client.make_request(&request_body).await?;
     println!("Done.");
 
     // update the commands
@@ -360,8 +356,7 @@ async fn full_sync(sync_url: &String, api_token: &String, data_dir: &PathBuf) ->
 
 async fn incremental_sync(
     sync_data: &mut Model,
-    sync_url: &String,
-    api_token: &String,
+    client: &Client,
     data_dir: &PathBuf,
 ) -> Result<()> {
     // get commands that we need to send
@@ -378,16 +373,7 @@ async fn incremental_sync(
     print!("Syncing... ");
     io::stdout().flush()?;
 
-    let client = reqwest::Client::new();
-    let resp = client
-        .post(format!("{sync_url}/sync"))
-        .header("Authorization", format!("Bearer {api_token}"))
-        .json(&request_body)
-        .send()
-        .await
-        // .map(reqwest::Response::text)?
-        .map(reqwest::Response::json::<sync::Response>)?
-        .await?;
+    let resp = client.make_request(&request_body).await?;
     println!("Done.");
 
     // update the sync_data with the result

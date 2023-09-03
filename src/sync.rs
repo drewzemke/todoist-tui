@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+pub mod client;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Model {
     pub sync_token: String,
