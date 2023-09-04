@@ -10,6 +10,7 @@ pub struct Model {
     pub sync_token: String,
     pub items: Vec<Item>,
     pub user: User,
+    pub commands: Vec<Command>,
 }
 
 impl Model {
@@ -46,6 +47,7 @@ impl TryFrom<Response> for Model {
             sync_token: response.sync_token,
             items: response.items,
             user,
+            commands: vec![],
         })
     }
 }

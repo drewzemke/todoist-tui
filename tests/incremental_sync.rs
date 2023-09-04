@@ -101,6 +101,7 @@ pub mod sync {
                         checked: false,
                     },
                 ],
+                commands: vec![],
             })?,
         )?;
         let mock_data_dir = mock_fs.path();
@@ -148,6 +149,7 @@ pub mod sync {
                         checked: false,
                     },
                 ],
+                commands: vec![],
             })?,
         )?;
         let mock_data_dir = mock_fs.path();
@@ -167,14 +169,14 @@ pub mod sync {
             .stdout(predicates::str::contains("'new todo!' added"))
             .code(0);
 
-        // check that the commands file was created with the correct content
-        let commands_file = mock_data_dir.join("commands.json");
-        assert!(commands_file.exists());
+        // check that a command was created in the data file with the correct content
+        let data_file = mock_data_dir.join("sync.json");
+        assert!(data_file.exists());
 
-        let file_contents = fs::read_to_string(commands_file)?;
-        let commands: Vec<sync::Command> = serde_json::from_str(&file_contents)?;
-        assert_eq!(commands.len(), 1);
-        assert_eq!(commands[0].request_type, "item_add");
+        let file_contents = fs::read_to_string(data_file)?;
+        let model: Model = serde_json::from_str(&file_contents)?;
+        assert_eq!(model.commands.len(), 1);
+        assert_eq!(model.commands[0].request_type, "item_add");
 
         Ok(())
     }
@@ -204,6 +206,7 @@ pub mod sync {
                         checked: false,
                     },
                 ],
+                commands: vec![],
             })?,
         )?;
         let mock_data_dir = mock_fs.path();
@@ -223,16 +226,16 @@ pub mod sync {
             .stdout(predicates::str::contains("'Todo One!' marked complete"))
             .code(0);
 
-        // check that the commands file was created with the correct content
-        let commands_file = mock_data_dir.join("commands.json");
-        assert!(commands_file.exists());
+        // check that a command was created in the data file with the correct content
+        let data_file = mock_data_dir.join("sync.json");
+        assert!(data_file.exists());
 
-        let file_contents = fs::read_to_string(commands_file)?;
-        let commands: Vec<sync::Command> = serde_json::from_str(&file_contents)?;
-        assert_eq!(commands.len(), 1);
-        assert_eq!(commands[0].request_type, "item_complete");
+        let file_contents = fs::read_to_string(data_file)?;
+        let model: Model = serde_json::from_str(&file_contents)?;
+        assert_eq!(model.commands.len(), 1);
+        assert_eq!(model.commands[0].request_type, "item_complete");
 
-        // TODO: the completed todo should no longer appear when running 'list'
+        // the completed todo should no longer appear when running 'list'
         let mut cmd = assert_cmd::Command::cargo_bin("todoist")?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
@@ -250,7 +253,7 @@ pub mod sync {
     async fn full_sync_send_new_todo() -> Result<()> {
         let new_item_temp_id = Uuid::new_v4();
 
-        // create mock `sync.json` and `commands.json`
+        // create mock `sync.json`
         let mock_fs = FsMockBuilder::new()?
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?
             .mock_file_contents(
@@ -275,19 +278,16 @@ pub mod sync {
                             checked: false,
                         },
                     ],
+                    commands: vec![sync::Command {
+                        request_type: "item_add".to_owned(),
+                        temp_id: Some(new_item_temp_id),
+                        uuid: Uuid::new_v4(),
+                        args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            content: "Todo Two!".to_string(),
+                        }),
+                    }],
                 })?,
-            )?
-            .mock_file_contents(
-                "commands.json",
-                serde_json::to_string_pretty(&[&sync::Command {
-                    request_type: "item_add".to_owned(),
-                    temp_id: Some(new_item_temp_id),
-                    uuid: Uuid::new_v4(),
-                    args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
-                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                        content: "Todo Two!".to_string(),
-                    }),
-                }])?,
             )?;
         let mock_data_dir = mock_fs.path();
 
@@ -358,13 +358,8 @@ pub mod sync {
         assert_eq!(sync_data.items[1].id, "MOCK_ITEM_ID_2_NEW");
         assert_eq!(sync_data.items[2].id, "MOCK_ITEM_ID_3");
 
-        // check that the commands file is now empty
-        let commands_file = mock_data_dir.join("commands.json");
-        assert!(commands_file.exists());
-
-        let file_contents = fs::read_to_string(commands_file)?;
-        let commands: Vec<sync::Command> = serde_json::from_str(&file_contents)?;
-        assert_eq!(commands.len(), 0);
+        // check that a commands list in the data file is now empty
+        assert_eq!(sync_data.commands.len(), 0);
 
         Ok(())
     }
@@ -398,19 +393,16 @@ pub mod sync {
                             checked: false,
                         },
                     ],
+                    commands: vec![sync::Command {
+                        request_type: "item_add".to_owned(),
+                        temp_id: Some(new_item_temp_id),
+                        uuid: Uuid::new_v4(),
+                        args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
+                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            content: "Todo Two!".to_string(),
+                        }),
+                    }],
                 })?,
-            )?
-            .mock_file_contents(
-                "commands.json",
-                serde_json::to_string_pretty(&[&sync::Command {
-                    request_type: "item_add".to_owned(),
-                    temp_id: Some(new_item_temp_id),
-                    uuid: Uuid::new_v4(),
-                    args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
-                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                        content: "Todo Two!".to_string(),
-                    }),
-                }])?,
             )?;
         let mock_data_dir = mock_fs.path();
 
@@ -458,13 +450,8 @@ pub mod sync {
         assert_eq!(sync_data.items[0].id, "MOCK_ITEM_ID_1");
         assert_eq!(sync_data.items[1].id, "MOCK_ITEM_ID_2_NEW");
 
-        // check that the commands file is now empty
-        let commands_file = mock_data_dir.join("commands.json");
-        assert!(commands_file.exists());
-
-        let file_contents = fs::read_to_string(commands_file)?;
-        let commands: Vec<sync::Command> = serde_json::from_str(&file_contents)?;
-        assert_eq!(commands.len(), 0);
+        // check that a commands list in the data file is now empty
+        assert_eq!(sync_data.commands.len(), 0);
 
         Ok(())
     }

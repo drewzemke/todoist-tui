@@ -104,31 +104,27 @@ async fn main() -> Result<()> {
     match args.command {
         Command::AddTodo { todo, no_sync } => {
             let mut model = model_manager.read_model()?;
-            let mut commands = model_manager.read_commands().unwrap_or_default();
-            add_item(&todo, &mut model, &mut commands);
+            add_item(&todo, &mut model);
             println!("'{todo}' added to inbox.");
-            model_manager.write_model(&model)?;
-            model_manager.write_commands(&commands)?;
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
-                let mut sync_data = model_manager.read_model()?;
+                let mut model = model_manager.read_model()?;
                 let client = Client::new(api_token, args.sync_url);
-                incremental_sync(&mut sync_data, &client, &data_dir).await?;
+                incremental_sync(&mut model, &client).await?;
             }
+            model_manager.write_model(&model)?;
         }
         Command::CompleteTodo { number, no_sync } => {
             let mut model = model_manager.read_model()?;
-            let mut commands = model_manager.read_commands().unwrap_or_default();
-            let removed_item = complete_item(number, &mut model, &mut commands)?;
+            let removed_item = complete_item(number, &mut model)?;
             println!("'{}' marked complete.", removed_item.content);
-            model_manager.write_model(&model)?;
-            model_manager.write_commands(&commands)?;
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
-                let mut sync_data = model_manager.read_model()?;
+                let mut model = model_manager.read_model()?;
                 let client = Client::new(api_token, args.sync_url);
-                incremental_sync(&mut sync_data, &client, &data_dir).await?;
+                incremental_sync(&mut model, &client).await?;
             }
+            model_manager.write_model(&model)?;
         }
         Command::ListInbox => {
             let model = model_manager.read_model()?;
@@ -148,7 +144,8 @@ async fn main() -> Result<()> {
             let client = Client::new(api_token, args.sync_url);
             if incremental {
                 let mut model = model_manager.read_model()?;
-                incremental_sync(&mut model, &client, &data_dir).await?;
+                incremental_sync(&mut model, &client).await?;
+                model_manager.write_model(&model)?;
             } else {
                 let model = full_sync(&client, &data_dir).await?;
                 model_manager.write_model(&model)?;
@@ -163,7 +160,7 @@ async fn main() -> Result<()> {
 // append to item list in model
 // create command
 // append to commands list
-fn add_item(item: &str, model: &mut Model, commands: &mut Vec<sync::Command>) {
+fn add_item(item: &str, model: &mut Model) {
     let inbox_id = &model.user.inbox_project_id;
 
     // FIXME: should Item.id be a uuid?? probs
@@ -176,7 +173,7 @@ fn add_item(item: &str, model: &mut Model, commands: &mut Vec<sync::Command>) {
     };
     model.items.push(new_item);
 
-    commands.push(sync::Command {
+    model.commands.push(sync::Command {
         request_type: "item_add".to_string(),
         temp_id: Some(item_id),
         uuid: Uuid::new_v4(),
@@ -187,11 +184,7 @@ fn add_item(item: &str, model: &mut Model, commands: &mut Vec<sync::Command>) {
     });
 }
 
-fn complete_item<'a>(
-    number: usize,
-    model: &'a mut Model,
-    commands: &mut Vec<sync::Command>,
-) -> Result<&'a Item> {
+fn complete_item(number: usize, model: &mut Model) -> Result<&Item> {
     // look at the current inbox and determine which task is targeted
     let (item_id, num_items) = {
         let inbox_items = model.get_inbox_items();
@@ -204,20 +197,22 @@ fn complete_item<'a>(
         (item.id.clone(), inbox_items.len())
     };
 
+    // create a new command and store it
+    model.commands.push(sync::Command {
+        request_type: "item_complete".to_owned(),
+        temp_id: None,
+        uuid: Uuid::new_v4(),
+        args: CommandArgs::CompleteItemCommandArgs(CompleteItemCommandArgs {
+            id: item_id.clone(),
+        }),
+    });
+
     // update the item's status
     let completed_item = model.complete_item(&item_id).map_err(|_| {
         anyhow!(
             "'{number}' is outside of the valid range. Pass a number between 1 and {num_items}.",
         )
     })?;
-
-    // create a new command and store it
-    commands.push(sync::Command {
-        request_type: "item_complete".to_owned(),
-        temp_id: None,
-        uuid: Uuid::new_v4(),
-        args: CommandArgs::CompleteItemCommandArgs(CompleteItemCommandArgs { id: item_id }),
-    });
 
     Ok(completed_item)
 }
@@ -261,20 +256,12 @@ async fn full_sync(client: &Client, data_dir: &PathBuf) -> Result<Model> {
     Ok(model)
 }
 
-async fn incremental_sync(
-    sync_data: &mut Model,
-    client: &Client,
-    data_dir: &PathBuf,
-) -> Result<()> {
-    // get commands that we need to send
-    let commands_file_path = Path::new(data_dir).join("commands.json");
-    let mut commands = get_commands(&commands_file_path)?;
-
+async fn incremental_sync(model: &mut Model, client: &Client) -> Result<()> {
     let request_body = Request {
-        sync_token: sync_data.sync_token.clone(),
+        sync_token: model.sync_token.clone(),
         resource_types: vec!["all".to_string()],
         // HACK: no clone here plz
-        commands: commands.clone(),
+        commands: model.commands.clone(),
     };
 
     print!("Syncing... ");
@@ -284,10 +271,10 @@ async fn incremental_sync(
     println!("Done.");
 
     // update the sync_data with the result
-    sync_data.sync_token = resp.sync_token;
+    model.sync_token = resp.sync_token;
     resp.temp_id_mapping.iter().for_each(|(temp_id, real_id)| {
         // HACK: should we do something else if we don't find a match?
-        if let Some(matching_item) = sync_data
+        if let Some(matching_item) = model
             .items
             .iter_mut()
             .find(|item| item.id == temp_id.to_string())
@@ -296,7 +283,8 @@ async fn incremental_sync(
         }
 
         // remove the matching command
-        commands = commands
+        model.commands = model
+            .commands
             .clone()
             .into_iter()
             .filter(
@@ -308,18 +296,8 @@ async fn incremental_sync(
             .collect();
     });
     if let Some(user) = resp.user {
-        sync_data.user = user;
+        model.user = user;
     }
-
-    let sync_storage_path = Path::new(data_dir).join("sync.json");
-
-    // store in file
-    fs::create_dir_all(Path::new(data_dir).join("data"))?;
-    let file = fs::File::create(sync_storage_path)?;
-    serde_json::to_writer_pretty(file, &sync_data)?;
-
-    // update the commands file
-    fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
 
     Ok(())
 }
