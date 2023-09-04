@@ -14,7 +14,7 @@ impl Manager {
     /// # Errors
     ///
     /// Returns an error if the local data directory cannot be found.
-    pub fn new(data_dir_override: Option<String>) -> Result<Self> {
+    pub fn init(data_dir_override: Option<String>) -> Result<Self> {
         let data_dir = if let Some(dir) = data_dir_override {
             PathBuf::from(dir)
         } else if let Some(dir) = dirs::data_local_dir() {
@@ -22,6 +22,10 @@ impl Manager {
         } else {
             bail!("Could not find local data directory.");
         };
+
+        if !data_dir.exists() {
+            fs::create_dir(&data_dir)?;
+        }
 
         Ok(Self { data_dir })
     }
@@ -38,8 +42,7 @@ impl Manager {
 
     /// # Errors
     ///
-    /// Returns an error if the file does not exist, cannot be opened, or if
-    /// an error occurs while writing.
+    /// Returns an error if the file cannot be opened or if an error occurs while writing.
     pub fn write_data(&self, path_from_data_dir: PathBuf, data: &str) -> Result<()> {
         let file_path = Path::new(&self.data_dir).join(path_from_data_dir);
         fs::write(file_path, data)?;

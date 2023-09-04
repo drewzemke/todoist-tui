@@ -97,7 +97,7 @@ async fn main() -> Result<()> {
         bail!("Could not find local data directory.");
     };
 
-    let file_manager = FileManager::new(args.local_dir)?;
+    let file_manager = FileManager::init(args.local_dir)?;
     let config_manager = ConfigManager::new(&file_manager);
     let model_manager = ModelManager::new(&file_manager);
 
