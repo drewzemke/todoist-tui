@@ -11,6 +11,7 @@ use std::{
 use todoist::{
     storage::{
         config::{Auth, Manager as ConfigManager},
+        data::Manager as ModelManager,
         file::Manager as FileManager,
     },
     sync::{
@@ -98,32 +99,40 @@ async fn main() -> Result<()> {
 
     let file_manager = FileManager::new(args.local_dir)?;
     let config_manager = ConfigManager::new(&file_manager);
+    let model_manager = ModelManager::new(&file_manager);
 
     match args.command {
         Command::AddTodo { todo, no_sync } => {
-            // FIXME: probably want to split up the network/file responsibilities here
-            add_item(&data_dir, &todo)?;
+            let mut model = model_manager.read_model()?;
+            let mut commands = model_manager.read_commands()?;
+            add_item(&todo, &mut model, &mut commands);
             println!("'{todo}' added to inbox.");
+            model_manager.write_model(&model)?;
+            model_manager.write_commands(&commands)?;
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
-                let mut sync_data = get_sync_data(&data_dir)?;
+                let mut sync_data = model_manager.read_model()?;
                 let client = Client::new(api_token, args.sync_url);
                 incremental_sync(&mut sync_data, &client, &data_dir).await?;
             }
         }
         Command::CompleteTodo { number, no_sync } => {
-            // FIXME: probably want to split up the network/file responsibilities here
-            let removed_item = complete_item(&data_dir, number)?;
+            let mut model = model_manager.read_model()?;
+            let mut commands = model_manager.read_commands()?;
+            let removed_item = complete_item(number, &mut model, &mut commands)?;
             println!("'{}' marked complete.", removed_item.content);
+            model_manager.write_model(&model)?;
+            model_manager.write_commands(&commands)?;
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
-                let mut sync_data = get_sync_data(&data_dir)?;
+                let mut sync_data = model_manager.read_model()?;
                 let client = Client::new(api_token, args.sync_url);
                 incremental_sync(&mut sync_data, &client, &data_dir).await?;
             }
         }
         Command::ListInbox => {
-            let inbox_items = get_inbox_items(&data_dir)?;
+            let model = model_manager.read_model()?;
+            let inbox_items = model.get_inbox_items();
 
             println!("Inbox: ");
             for (index, Item { content, .. }) in inbox_items.iter().enumerate() {
@@ -149,19 +158,12 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn add_item(data_dir: &PathBuf, item: &str) -> Result<()> {
-    // read in the stored data
-    let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
-
-    let file = fs::read_to_string(sync_file_path)?;
-    let mut data = serde_json::from_str::<Model>(&file)?;
-
-    // create a new item and add it to the item list
-    let inbox_id = &data
-        .user
-        .as_ref()
-        .ok_or(anyhow!("Could not find inbox project id in stored data."))?
-        .inbox_project_id;
+// create new item
+// append to item list in model
+// create command
+// append to commands list
+fn add_item(item: &str, model: &mut Model, commands: &mut Vec<sync::Command>) {
+    let inbox_id = &model.user.inbox_project_id;
 
     // FIXME: should Item.id be a uuid?? probs
     let item_id = Uuid::new_v4();
@@ -171,119 +173,52 @@ fn add_item(data_dir: &PathBuf, item: &str) -> Result<()> {
         content: item.to_owned(),
         checked: false,
     };
-    data.items.push(new_item);
-
-    // store the data
-    let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
-    let file = fs::File::create(sync_storage_path)?;
-    serde_json::to_writer_pretty(file, &data)?;
-
-    // create a new command and store it
-    let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
-
-    let mut commands: Vec<sync::Command> = if commands_file_path.exists() {
-        let file = fs::read_to_string(&commands_file_path)?;
-        serde_json::from_str::<Vec<sync::Command>>(&file)?
-    } else {
-        Vec::new()
-    };
+    model.items.push(new_item);
 
     commands.push(sync::Command {
-        request_type: "item_add".to_owned(),
+        request_type: "item_add".to_string(),
         temp_id: Some(item_id),
         uuid: Uuid::new_v4(),
         args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
             project_id: inbox_id.clone(),
-            content: item.to_owned(),
+            content: item.to_string(),
         }),
     });
-
-    fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
-
-    Ok(())
 }
 
-fn complete_item(data_dir: &PathBuf, number: usize) -> Result<Item> {
-    // read in the stored data
-    let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
-
-    let file = fs::read_to_string(sync_file_path)?;
-    let mut data = serde_json::from_str::<Model>(&file)?;
-
+fn complete_item<'a>(
+    number: usize,
+    model: &'a mut Model,
+    commands: &mut Vec<sync::Command>,
+) -> Result<&'a Item> {
     // look at the current inbox and determine which task is targeted
-    let inbox_items = &get_inbox_items(data_dir)?;
-    if number == 0 || number >= inbox_items.len() {
-        bail!(
-            "'{number}' is outside of the valid range. Pass a number between 1 and {}.",
-            inbox_items.len()
-        )
-    }
-
-    // HACK: is there a way around this clone?
-    let target_item = inbox_items
-        .get(number - 1)
-        .ok_or_else(|| {
+    let (item_id, num_items) = {
+        let inbox_items = model.get_inbox_items();
+        let item = inbox_items.get(number - 1).ok_or_else(|| {
             anyhow!(
                 "'{number}' is outside of the valid range. Pass a number between 1 and {}.",
                 inbox_items.len()
             )
-        })?
-        .clone();
-
-    // update the item's status store the data
-    let storage_item = data
-        .items
-        .iter_mut()
-        .find(|item| item.id == target_item.id)
-        .ok_or_else(|| {
-            anyhow!(
-                "Could not find item in storage that matches '{}'",
-                target_item.content
-            )
         })?;
-    storage_item.checked = true;
-    let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
-    let file = fs::File::create(sync_storage_path)?;
-    serde_json::to_writer_pretty(file, &data)?;
-
-    // create a new command and store it
-    let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
-
-    let mut commands: Vec<sync::Command> = if commands_file_path.exists() {
-        let file = fs::read_to_string(&commands_file_path)?;
-        serde_json::from_str::<Vec<sync::Command>>(&file)?
-    } else {
-        Vec::new()
+        (item.id.clone(), inbox_items.len())
     };
 
+    // update the item's status
+    let completed_item = model.complete_item(&item_id).map_err(|_| {
+        anyhow!(
+            "'{number}' is outside of the valid range. Pass a number between 1 and {num_items}.",
+        )
+    })?;
+
+    // create a new command and store it
     commands.push(sync::Command {
         request_type: "item_complete".to_owned(),
         temp_id: None,
         uuid: Uuid::new_v4(),
-        args: CommandArgs::CompleteItemCommandArgs(CompleteItemCommandArgs {
-            id: target_item.id.clone(),
-        }),
+        args: CommandArgs::CompleteItemCommandArgs(CompleteItemCommandArgs { id: item_id }),
     });
 
-    fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
-
-    Ok(target_item)
-}
-
-fn get_inbox_items(data_dir: &PathBuf) -> Result<Vec<Item>> {
-    let data = get_sync_data(data_dir)?;
-
-    // get the items with the correct id
-    if let Some(inbox_id) = data.user.map(|user| user.inbox_project_id) {
-        let items: Vec<Item> = data
-            .items
-            .into_iter()
-            .filter(|item| item.project_id == inbox_id && !item.checked)
-            .collect();
-        Ok(items)
-    } else {
-        bail!("Could not find inbox project id in stored data.")
-    }
+    Ok(completed_item)
 }
 
 fn get_sync_data(data_dir: &PathBuf) -> Result<Model> {

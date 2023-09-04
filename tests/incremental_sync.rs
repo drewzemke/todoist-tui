@@ -19,14 +19,7 @@ pub mod sync {
     async fn full_sync_and_store_data() -> Result<()> {
         // create mock `client_auth.toml` and `data/user.json`
         let mock_fs = FsMockBuilder::new()?
-            .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?
-            .mock_file_contents(
-                "data/user.json",
-                r#"{
-                    "full_name": "Drew",
-                    "inbox_project_id": "MOCK_INBOX_PROJECT_ID"     
-                }"#,
-            )?;
+            .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?;
         let mock_data_dir = mock_fs.path();
 
         // set up mock server

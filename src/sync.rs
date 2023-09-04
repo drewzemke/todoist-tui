@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 pub mod client;
@@ -10,6 +10,31 @@ pub struct Model {
     pub sync_token: String,
     pub items: Vec<Item>,
     pub user: User,
+}
+
+impl Model {
+    /// # Errors
+    ///
+    /// Returns an error if an item with the given id is not found.
+    pub fn complete_item(&mut self, item_id: &str) -> Result<&Item> {
+        let item = self
+            .items
+            .iter_mut()
+            .find(|item| item.id == item_id)
+            .ok_or(anyhow!("Could not find item to complete"))?;
+        item.mark_complete();
+        Ok(item)
+    }
+
+    #[must_use]
+    pub fn get_inbox_items(&self) -> Vec<&Item> {
+        // get the items with the correct id
+        let inbox_id = &self.user.inbox_project_id;
+        self.items
+            .iter()
+            .filter(|item| item.project_id == *inbox_id && !item.checked)
+            .collect()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -94,4 +119,10 @@ pub struct Item {
     pub project_id: String,
     pub content: String,
     pub checked: bool,
+}
+
+impl Item {
+    pub fn mark_complete(&mut self) {
+        self.checked = true;
+    }
 }
