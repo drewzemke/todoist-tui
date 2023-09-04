@@ -48,4 +48,10 @@ impl Manager {
         fs::write(file_path, data)?;
         Ok(())
     }
+
+    #[must_use]
+    pub fn has_data_file(&self, path_from_data_dir: PathBuf) -> bool {
+        let file_path = Path::new(&self.data_dir).join(path_from_data_dir);
+        file_path.exists()
+    }
 }

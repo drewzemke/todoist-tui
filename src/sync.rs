@@ -47,8 +47,15 @@ impl TryFrom<Response> for Model {
             sync_token: response.sync_token,
             items: response.items,
             user,
+
+impl Default for Model {
+    fn default() -> Self {
+        Model {
+            sync_token: "*".to_string(),
+            items: vec![],
+            user: User::default(),
             commands: vec![],
-        })
+        }
     }
 }
 
@@ -73,6 +80,15 @@ pub struct Response {
 pub struct User {
     pub full_name: String,
     pub inbox_project_id: String,
+}
+
+impl Default for User {
+    fn default() -> Self {
+        User {
+            full_name: "First Last".to_string(),
+            inbox_project_id: String::new(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -20,13 +20,17 @@ impl<'a> Manager<'a> {
     /// Returns an error if the data file cannot be found or read, or if the file
     /// can be read but isn't in the correct format.
     pub fn read_model(&self) -> Result<Model> {
-        let file = self
-            .file_manager
-            .read_data(MODEL_FILE_NAME.into())
-            .context("Could not read from the app's data storage.")?;
-        let model = serde_json::from_str(&file)
-            .with_context(|| format!("Could not parse model file '{MODEL_FILE_NAME}'"))?;
-        Ok(model)
+        if self.file_manager.has_data_file(MODEL_FILE_NAME.into()) {
+            let file = self
+                .file_manager
+                .read_data(MODEL_FILE_NAME.into())
+                .context("Could not read from the app's data storage.")?;
+            let model = serde_json::from_str(&file)
+                .with_context(|| format!("Could not parse model file '{MODEL_FILE_NAME}'"))?;
+            Ok(model)
+        } else {
+            Ok(Model::default())
+        }
     }
 
     /// # Errors
