@@ -17,7 +17,7 @@ pub mod sync {
 
     #[tokio::test]
     async fn full_sync_and_store_data() -> Result<()> {
-        // create mock `client_auth.toml` and `user.json`
+        // create mock `client_auth.toml`
         let mock_fs = FsMockBuilder::new()?
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?;
         let mock_data_dir = mock_fs.path();
@@ -252,6 +252,7 @@ pub mod sync {
     #[tokio::test]
     async fn full_sync_send_new_todo() -> Result<()> {
         let new_item_temp_id = Uuid::new_v4();
+        let command_uuid = Uuid::new_v4();
 
         // create mock `sync.json`
         let mock_fs = FsMockBuilder::new()?
@@ -281,7 +282,7 @@ pub mod sync {
                     commands: vec![sync::Command {
                         request_type: "item_add".to_owned(),
                         temp_id: Some(new_item_temp_id),
-                        uuid: Uuid::new_v4(),
+                        uuid: command_uuid,
                         args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Two!".to_string(),
@@ -301,7 +302,7 @@ pub mod sync {
                         && request.resource_types.get(0).is_some_and(|s| s == "all")
                 },
                 Response {
-                    full_sync: false,
+                    full_sync: true,
                     items: vec![
                         Item {
                             id: "MOCK_ITEM_ID_1".to_string(),
@@ -322,7 +323,10 @@ pub mod sync {
                             checked: false,
                         },
                     ],
-                    sync_status: Some(HashMap::from([("UUID".to_string(), "ok".to_string())])),
+                    sync_status: Some(HashMap::from([(
+                        command_uuid.to_string(),
+                        "ok".to_string(),
+                    )])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(
                         new_item_temp_id,
@@ -367,6 +371,7 @@ pub mod sync {
     #[tokio::test]
     async fn incremental_sync_send_new_todo() -> Result<()> {
         let new_item_temp_id = Uuid::new_v4();
+        let command_uuid = Uuid::new_v4();
 
         // create mock `sync.json` and `commands.json`
         let mock_fs = FsMockBuilder::new()?
@@ -396,7 +401,7 @@ pub mod sync {
                     commands: vec![sync::Command {
                         request_type: "item_add".to_owned(),
                         temp_id: Some(new_item_temp_id),
-                        uuid: Uuid::new_v4(),
+                        uuid: command_uuid,
                         args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Two!".to_string(),
@@ -418,7 +423,10 @@ pub mod sync {
                 Response {
                     full_sync: false,
                     items: vec![],
-                    sync_status: Some(HashMap::from([("UUID".to_string(), "ok".to_string())])),
+                    sync_status: Some(HashMap::from([(
+                        command_uuid.to_string(),
+                        "ok".to_string(),
+                    )])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(
                         new_item_temp_id,

@@ -1,13 +1,8 @@
 #![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
-use std::{
-    fs,
-    io::{self, Write},
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::io::{self, Write};
 use todoist::{
     storage::{
         config::{Auth, Manager as ConfigManager},
@@ -89,14 +84,6 @@ struct Config {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    let data_dir = if let Some(dir) = args.local_dir.clone() {
-        PathBuf::from_str(dir.as_str())?
-    } else if let Some(dir) = dirs::data_local_dir() {
-        dir.join("tuido")
-    } else {
-        bail!("Could not find local data directory.");
-    };
-
     let file_manager = FileManager::init(args.local_dir)?;
     let config_manager = ConfigManager::new(&file_manager);
     let model_manager = ModelManager::new(&file_manager);
@@ -147,7 +134,8 @@ async fn main() -> Result<()> {
                 incremental_sync(&mut model, &client).await?;
                 model_manager.write_model(&model)?;
             } else {
-                let model = full_sync(&client, &data_dir).await?;
+                let mut model = model_manager.read_model()?;
+                full_sync(&mut model, &client).await?;
                 model_manager.write_model(&model)?;
             }
         }
@@ -217,43 +205,23 @@ fn complete_item(number: usize, model: &mut Model) -> Result<&Item> {
     Ok(completed_item)
 }
 
-async fn full_sync(client: &Client, data_dir: &PathBuf) -> Result<Model> {
-    let commands_file_path = Path::new(data_dir).join("commands.json");
-    let mut commands = get_commands(&commands_file_path)?;
-
+async fn full_sync(model: &mut Model, client: &Client) -> Result<()> {
     let request_body = Request {
         sync_token: "*".to_string(),
         resource_types: vec!["all".to_string()],
-        commands: commands.clone(),
+        commands: model.commands.clone(),
     };
 
     print!("Syncing... ");
     io::stdout().flush()?;
 
-    let resp = client.make_request(&request_body).await?;
+    let response = client.make_request(&request_body).await?;
     println!("Done.");
 
-    // update the commands
-    resp.temp_id_mapping.iter().for_each(|(temp_id, _)| {
-        // remove the matching command
-        commands = commands
-            .clone()
-            .into_iter()
-            .filter(
-                |sync::Command {
-                     temp_id: command_temp_id,
-                     ..
-                 }| command_temp_id.as_ref() != Some(temp_id),
-            )
-            .collect();
-    });
+    // update the sync_data with the result
+    model.update(response);
 
-    let model: Model = resp.try_into()?;
-
-    // update the commands file
-    fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
-
-    Ok(model)
+    Ok(())
 }
 
 async fn incremental_sync(model: &mut Model, client: &Client) -> Result<()> {
@@ -267,47 +235,11 @@ async fn incremental_sync(model: &mut Model, client: &Client) -> Result<()> {
     print!("Syncing... ");
     io::stdout().flush()?;
 
-    let resp = client.make_request(&request_body).await?;
+    let response = client.make_request(&request_body).await?;
     println!("Done.");
 
     // update the sync_data with the result
-    model.sync_token = resp.sync_token;
-    resp.temp_id_mapping.iter().for_each(|(temp_id, real_id)| {
-        // HACK: should we do something else if we don't find a match?
-        if let Some(matching_item) = model
-            .items
-            .iter_mut()
-            .find(|item| item.id == temp_id.to_string())
-        {
-            matching_item.id = real_id.clone();
-        }
-
-        // remove the matching command
-        model.commands = model
-            .commands
-            .clone()
-            .into_iter()
-            .filter(
-                |sync::Command {
-                     temp_id: command_temp_id,
-                     ..
-                 }| command_temp_id.as_ref() != Some(temp_id),
-            )
-            .collect();
-    });
-    if let Some(user) = resp.user {
-        model.user = user;
-    }
+    model.update(response);
 
     Ok(())
-}
-
-fn get_commands(commands_file_path: &PathBuf) -> Result<Vec<sync::Command>> {
-    let commands: Vec<sync::Command> = if commands_file_path.exists() {
-        let file = fs::read_to_string(commands_file_path)?;
-        serde_json::from_str::<Vec<sync::Command>>(&file)?
-    } else {
-        Vec::new()
-    };
-    Ok(commands)
 }

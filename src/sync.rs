@@ -36,17 +36,44 @@ impl Model {
             .filter(|item| item.project_id == *inbox_id && !item.checked)
             .collect()
     }
-impl TryFrom<Response> for Model {
-    type Error = anyhow::Error;
 
-    fn try_from(response: Response) -> std::result::Result<Self, Self::Error> {
-        let user = response.user.ok_or(anyhow!(
-            "Could not parse a response into a Model because the `user` field was missing"
-        ))?;
-        Ok(Model {
-            sync_token: response.sync_token,
-            items: response.items,
-            user,
+    pub fn update(&mut self, response: Response) {
+        self.sync_token = response.sync_token;
+
+        if let Some(user) = response.user {
+            self.user = user;
+        }
+
+        if response.full_sync {
+            // if this was a full sync, just replace the set of items
+            self.items = response.items;
+        } else {
+            // if not, use the id mapping from the response to update the ids of the existing items
+            response
+                .temp_id_mapping
+                .iter()
+                .for_each(|(temp_id, real_id)| {
+                    // HACK: should we do something else if we don't find a match?
+                    if let Some(matching_item) = self
+                        .items
+                        .iter_mut()
+                        .find(|item| item.id == temp_id.to_string())
+                    {
+                        matching_item.id = real_id.clone();
+                    }
+                });
+        }
+
+        // update the command list by removing the commands that succeeded
+        if let Some(ref status_map) = response.sync_status {
+            self.commands.retain(|command| {
+                !status_map
+                    .get(&command.uuid.to_string())
+                    .is_some_and(|status| status == "ok")
+            });
+        }
+    }
+}
 
 impl Default for Model {
     fn default() -> Self {
