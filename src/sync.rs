@@ -35,6 +35,19 @@ impl Model {
             .filter(|item| item.project_id == *inbox_id && !item.checked)
             .collect()
     }
+impl TryFrom<Response> for Model {
+    type Error = anyhow::Error;
+
+    fn try_from(response: Response) -> std::result::Result<Self, Self::Error> {
+        let user = response.user.ok_or(anyhow!(
+            "Could not parse a response into a Model because the `user` field was missing"
+        ))?;
+        Ok(Model {
+            sync_token: response.sync_token,
+            items: response.items,
+            user,
+        })
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

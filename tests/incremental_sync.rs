@@ -335,7 +335,10 @@ pub mod sync {
                         new_item_temp_id,
                         "MOCK_ITEM_ID_2_NEW".to_string(),
                     )]),
-                    user: None,
+                    user: Some(User {
+                        full_name: "Drew".to_string(),
+                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                    }),
                 },
             )
             .await;
@@ -380,13 +383,6 @@ pub mod sync {
         // create mock `data/sync.json` and `data/commands.json`
         let mock_fs = FsMockBuilder::new()?
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?
-            .mock_file_contents(
-                "data/user.json",
-                r#"{
-                    "full_name": "Drew",
-                    "inbox_project_id": "MOCK_INBOX_PROJECT_ID"     
-                }"#,
-            )?
             .mock_file_contents(
                 "data/sync.json",
                 serde_json::to_string_pretty(&Model {

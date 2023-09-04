@@ -104,7 +104,7 @@ async fn main() -> Result<()> {
     match args.command {
         Command::AddTodo { todo, no_sync } => {
             let mut model = model_manager.read_model()?;
-            let mut commands = model_manager.read_commands()?;
+            let mut commands = model_manager.read_commands().unwrap_or_default();
             add_item(&todo, &mut model, &mut commands);
             println!("'{todo}' added to inbox.");
             model_manager.write_model(&model)?;
@@ -118,7 +118,7 @@ async fn main() -> Result<()> {
         }
         Command::CompleteTodo { number, no_sync } => {
             let mut model = model_manager.read_model()?;
-            let mut commands = model_manager.read_commands()?;
+            let mut commands = model_manager.read_commands().unwrap_or_default();
             let removed_item = complete_item(number, &mut model, &mut commands)?;
             println!("'{}' marked complete.", removed_item.content);
             model_manager.write_model(&model)?;
@@ -264,10 +264,12 @@ async fn full_sync(client: &Client, data_dir: &PathBuf) -> Result<()> {
 
     let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
 
+    let model: Model = resp.try_into()?;
+
     // store in file
     fs::create_dir_all(Path::new(data_dir).join("data"))?;
     let file = fs::File::create(sync_storage_path)?;
-    serde_json::to_writer_pretty(file, &resp)?;
+    serde_json::to_writer_pretty(file, &model)?;
 
     // update the commands file
     fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
@@ -321,6 +323,9 @@ async fn incremental_sync(
             )
             .collect();
     });
+    if let Some(user) = resp.user {
+        sync_data.user = user;
+    }
 
     let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
 
