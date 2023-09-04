@@ -30,7 +30,9 @@ todoist complete 2
 - [ ] refactor!
   - [x] bring in `anyhow`
   - [x] build a type to represent the data model / storage
-  - [ ] separate modules for file handling and api reqs
+  - [x] separate modules for file handling and api reqs
+  - [ ] separate modules for data types (model, items, etc)
+  - [ ] dry up tests, separate by behavior
 
 - [x] complete a todo
   - [ ] attach completed date when completing a todo

@@ -95,7 +95,6 @@ async fn main() -> Result<()> {
             println!("'{todo}' added to inbox.");
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
-                let mut model = model_manager.read_model()?;
                 let client = Client::new(api_token, args.sync_url);
                 incremental_sync(&mut model, &client).await?;
             }
@@ -107,7 +106,6 @@ async fn main() -> Result<()> {
             println!("'{}' marked complete.", removed_item.content);
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
-                let mut model = model_manager.read_model()?;
                 let client = Client::new(api_token, args.sync_url);
                 incremental_sync(&mut model, &client).await?;
             }
