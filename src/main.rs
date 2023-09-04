@@ -147,10 +147,11 @@ async fn main() -> Result<()> {
             let api_token = config_manager.read_auth_config()?.api_token;
             let client = Client::new(api_token, args.sync_url);
             if incremental {
-                let mut sync_data = get_sync_data(&data_dir)?;
-                incremental_sync(&mut sync_data, &client, &data_dir).await?;
+                let mut model = model_manager.read_model()?;
+                incremental_sync(&mut model, &client, &data_dir).await?;
             } else {
-                full_sync(&client, &data_dir).await?;
+                let model = full_sync(&client, &data_dir).await?;
+                model_manager.write_model(&model)?;
             }
         }
     };
@@ -221,16 +222,6 @@ fn complete_item<'a>(
     Ok(completed_item)
 }
 
-fn get_sync_data(data_dir: &PathBuf) -> Result<Model> {
-    // read in the stored data
-    let sync_file_path = Path::new(data_dir).join("data").join("sync.json");
-
-    let file = fs::read_to_string(sync_file_path)?;
-    // HACK: wrong type, need a common storage type
-    let data = serde_json::from_str(&file)?;
-    Ok(data)
-}
-
 async fn full_sync(client: &Client, data_dir: &PathBuf) -> Result<Model> {
     let commands_file_path = Path::new(data_dir).join("commands.json");
     let mut commands = get_commands(&commands_file_path)?;
@@ -262,19 +253,12 @@ async fn full_sync(client: &Client, data_dir: &PathBuf) -> Result<Model> {
             .collect();
     });
 
-    let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
-
     let model: Model = resp.try_into()?;
-
-    // store in file
-    fs::create_dir_all(Path::new(data_dir).join("data"))?;
-    let file = fs::File::create(sync_storage_path)?;
-    serde_json::to_writer_pretty(file, &model)?;
 
     // update the commands file
     fs::write(commands_file_path, serde_json::to_string_pretty(&commands)?)?;
 
-    Ok(())
+    Ok(model)
 }
 
 async fn incremental_sync(
