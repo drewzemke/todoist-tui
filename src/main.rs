@@ -231,8 +231,8 @@ fn get_sync_data(data_dir: &PathBuf) -> Result<Model> {
     Ok(data)
 }
 
-async fn full_sync(client: &Client, data_dir: &PathBuf) -> Result<()> {
-    let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
+async fn full_sync(client: &Client, data_dir: &PathBuf) -> Result<Model> {
+    let commands_file_path = Path::new(data_dir).join("commands.json");
     let mut commands = get_commands(&commands_file_path)?;
 
     let request_body = Request {
@@ -283,7 +283,7 @@ async fn incremental_sync(
     data_dir: &PathBuf,
 ) -> Result<()> {
     // get commands that we need to send
-    let commands_file_path = Path::new(data_dir).join("data").join("commands.json");
+    let commands_file_path = Path::new(data_dir).join("commands.json");
     let mut commands = get_commands(&commands_file_path)?;
 
     let request_body = Request {
@@ -327,7 +327,7 @@ async fn incremental_sync(
         sync_data.user = user;
     }
 
-    let sync_storage_path = Path::new(data_dir).join("data").join("sync.json");
+    let sync_storage_path = Path::new(data_dir).join("sync.json");
 
     // store in file
     fs::create_dir_all(Path::new(data_dir).join("data"))?;

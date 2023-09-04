@@ -3,8 +3,8 @@ use super::file::Manager as FileManager;
 use crate::sync::{Command, Model};
 use anyhow::{Context, Result};
 
-const MODEL_FILE_NAME: &str = "data/sync.json";
-const COMMANDS_FILE_NAME: &str = "data/commands.json";
+const MODEL_FILE_NAME: &str = "sync.json";
+const COMMANDS_FILE_NAME: &str = "commands.json";
 
 pub struct Manager<'a> {
     file_manager: &'a FileManager,
@@ -36,7 +36,8 @@ impl<'a> Manager<'a> {
     pub fn write_model(&self, model: &Model) -> Result<()> {
         let contents = serde_json::to_string_pretty(model)?;
         self.file_manager
-            .write_data(MODEL_FILE_NAME.into(), &contents)?;
+            .write_data(MODEL_FILE_NAME.into(), &contents)
+            .context("Could not write to command storage file.")?;
         Ok(())
     }
     // TODO: combine the two methods below with the above (while also combining Model and Commands?)
@@ -60,7 +61,8 @@ impl<'a> Manager<'a> {
     pub fn write_commands(&self, commands: &Vec<Command>) -> Result<()> {
         let contents = serde_json::to_string_pretty(commands)?;
         self.file_manager
-            .write_data(COMMANDS_FILE_NAME.into(), &contents)?;
+            .write_data(COMMANDS_FILE_NAME.into(), &contents)
+            .context("Could not write to command storage file.")?;
         Ok(())
     }
 }

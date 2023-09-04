@@ -17,7 +17,7 @@ pub mod sync {
 
     #[tokio::test]
     async fn full_sync_and_store_data() -> Result<()> {
-        // create mock `client_auth.toml` and `data/user.json`
+        // create mock `client_auth.toml` and `user.json`
         let mock_fs = FsMockBuilder::new()?
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?;
         let mock_data_dir = mock_fs.path();
@@ -71,16 +71,16 @@ pub mod sync {
             .code(0);
 
         // check that a file was created
-        assert!(mock_data_dir.join("data").join("sync.json").exists());
+        assert!(mock_data_dir.join("sync.json").exists());
 
         Ok(())
     }
 
     #[test]
     fn get_inbox_items_from_local() -> Result<()> {
-        // create mock `data/sync.json`
+        // create mock `sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
-            "data/sync.json",
+            "sync.json",
             serde_json::to_string_pretty(&Model {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
                 user: User {
@@ -125,9 +125,9 @@ pub mod sync {
 
     #[test]
     fn add_todo_to_local_no_sync() -> Result<()> {
-        // create mock and `data/sync.json`
+        // create mock and `sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
-            "data/sync.json",
+            "sync.json",
             serde_json::to_string_pretty(&Model {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
                 user: User {
@@ -168,7 +168,7 @@ pub mod sync {
             .code(0);
 
         // check that the commands file was created with the correct content
-        let commands_file = mock_data_dir.join("data").join("commands.json");
+        let commands_file = mock_data_dir.join("commands.json");
         assert!(commands_file.exists());
 
         let file_contents = fs::read_to_string(commands_file)?;
@@ -181,9 +181,9 @@ pub mod sync {
 
     #[test]
     fn complete_todo_no_sync() -> Result<()> {
-        // create mock and `data/sync.json`
+        // create mock and `sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
-            "data/sync.json",
+            "sync.json",
             serde_json::to_string_pretty(&Model {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
                 user: User {
@@ -224,7 +224,7 @@ pub mod sync {
             .code(0);
 
         // check that the commands file was created with the correct content
-        let commands_file = mock_data_dir.join("data").join("commands.json");
+        let commands_file = mock_data_dir.join("commands.json");
         assert!(commands_file.exists());
 
         let file_contents = fs::read_to_string(commands_file)?;
@@ -250,18 +250,11 @@ pub mod sync {
     async fn full_sync_send_new_todo() -> Result<()> {
         let new_item_temp_id = Uuid::new_v4();
 
-        // create mock `data/sync.json` and `data/commands.json`
+        // create mock `sync.json` and `commands.json`
         let mock_fs = FsMockBuilder::new()?
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?
             .mock_file_contents(
-                "data/user.json",
-                r#"{
-                    "full_name": "Drew",
-                    "inbox_project_id": "MOCK_INBOX_PROJECT_ID"     
-                }"#,
-            )?
-            .mock_file_contents(
-                "data/sync.json",
+                "sync.json",
                 serde_json::to_string_pretty(&Model {
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
                     user: User {
@@ -285,7 +278,7 @@ pub mod sync {
                 })?,
             )?
             .mock_file_contents(
-                "data/commands.json",
+                "commands.json",
                 serde_json::to_string_pretty(&[&sync::Command {
                     request_type: "item_add".to_owned(),
                     temp_id: Some(new_item_temp_id),
@@ -355,7 +348,7 @@ pub mod sync {
             .code(0);
 
         // check that the sync data file was updated with the correct content
-        let sync_file = mock_data_dir.join("data").join("sync.json");
+        let sync_file = mock_data_dir.join("sync.json");
         let file_contents = fs::read_to_string(sync_file)?;
         let sync_data: Model = serde_json::from_str(&file_contents)?;
 
@@ -366,7 +359,7 @@ pub mod sync {
         assert_eq!(sync_data.items[2].id, "MOCK_ITEM_ID_3");
 
         // check that the commands file is now empty
-        let commands_file = mock_data_dir.join("data").join("commands.json");
+        let commands_file = mock_data_dir.join("commands.json");
         assert!(commands_file.exists());
 
         let file_contents = fs::read_to_string(commands_file)?;
@@ -380,11 +373,11 @@ pub mod sync {
     async fn incremental_sync_send_new_todo() -> Result<()> {
         let new_item_temp_id = Uuid::new_v4();
 
-        // create mock `data/sync.json` and `data/commands.json`
+        // create mock `sync.json` and `commands.json`
         let mock_fs = FsMockBuilder::new()?
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?
             .mock_file_contents(
-                "data/sync.json",
+                "sync.json",
                 serde_json::to_string_pretty(&Model {
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
                     user: User {
@@ -408,7 +401,7 @@ pub mod sync {
                 })?,
             )?
             .mock_file_contents(
-                "data/commands.json",
+                "commands.json",
                 serde_json::to_string_pretty(&[&sync::Command {
                     request_type: "item_add".to_owned(),
                     temp_id: Some(new_item_temp_id),
@@ -456,7 +449,7 @@ pub mod sync {
             .code(0);
 
         // check that the sync data file was updated with the correct content
-        let sync_file = mock_data_dir.join("data").join("sync.json");
+        let sync_file = mock_data_dir.join("sync.json");
         let file_contents = fs::read_to_string(sync_file)?;
         let sync_data: Model = serde_json::from_str(&file_contents)?;
 
@@ -466,7 +459,7 @@ pub mod sync {
         assert_eq!(sync_data.items[1].id, "MOCK_ITEM_ID_2_NEW");
 
         // check that the commands file is now empty
-        let commands_file = mock_data_dir.join("data").join("commands.json");
+        let commands_file = mock_data_dir.join("commands.json");
         assert!(commands_file.exists());
 
         let file_contents = fs::read_to_string(commands_file)?;

@@ -16,11 +16,11 @@ pub mod e2e {
     // Ignoring for now, since we're changing the behavior to use incremental sync
     #[ignore]
     async fn add_to_inbox_when_user_data_exists() -> Result<()> {
-        // create mock `client_auth.toml` and `data/user.json`
+        // create mock `client_auth.toml` and `user.json`
         let mock_fs = FsMockBuilder::new()?
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?
             .mock_file_contents(
-                "data/user.json",
+                "user.json",
                 r#"{
                     "full_name": "Drew",
                     "inbox_project_id": "MOCK_INBOX_PROJECT_ID"     
@@ -206,11 +206,11 @@ pub mod e2e {
     // Ignoring for now, since we're changing the behavior to use incremental sync
     #[ignore]
     async fn get_inbox_items() -> Result<(), Box<dyn std::error::Error>> {
-        // create mock `client_auth.toml` and `data/user.json`
+        // create mock `client_auth.toml` and `user.json`
         let mock_fs = FsMockBuilder::new()?
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?
             .mock_file_contents(
-                "data/user.json",
+                "user.json",
                 r#"{
                     "full_name": "Drew",
                     "inbox_project_id": "MOCK_INBOX_PROJECT_ID"     
