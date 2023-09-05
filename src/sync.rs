@@ -25,8 +25,7 @@ pub struct Response {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Request {
     pub commands: Vec<Command>,
-    // TODO: stronger typing
-    pub resource_types: Vec<String>,
+    pub resource_types: Vec<ResourceType>,
     pub sync_token: String,
 }
 
@@ -44,4 +43,10 @@ pub struct StatusError {
     pub code: u32,
     #[serde(rename = "error")]
     pub message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum ResourceType {
+    #[serde(rename = "all")]
+    All,
 }

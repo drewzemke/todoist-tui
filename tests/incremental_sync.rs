@@ -15,7 +15,7 @@ pub mod sync {
             user::User,
             Model,
         },
-        sync::{Request, Response, Status},
+        sync::{Request, ResourceType, Response, Status},
     };
     use uuid::Uuid;
 
@@ -35,7 +35,10 @@ pub mod sync {
                 "sync",
                 |request: Request| {
                     request.sync_token == "*"
-                        && request.resource_types.get(0).is_some_and(|s| s == "all")
+                        && request
+                            .resource_types
+                            .get(0)
+                            .is_some_and(|s| *s == ResourceType::All)
                 },
                 Response {
                     full_sync: true,
@@ -305,7 +308,10 @@ pub mod sync {
                 "sync",
                 |request: Request| {
                     request.sync_token == "*"
-                        && request.resource_types.get(0).is_some_and(|s| s == "all")
+                        && request
+                            .resource_types
+                            .get(0)
+                            .is_some_and(|s| *s == ResourceType::All)
                 },
                 Response {
                     full_sync: true,
@@ -421,7 +427,10 @@ pub mod sync {
                 "sync",
                 |request: Request| {
                     request.sync_token == "MOCK_SYNC_TOKEN"
-                        && request.resource_types.get(0).is_some_and(|s| s == "all")
+                        && request
+                            .resource_types
+                            .get(0)
+                            .is_some_and(|s| *s == ResourceType::All)
                 },
                 Response {
                     full_sync: false,

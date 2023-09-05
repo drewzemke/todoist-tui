@@ -14,7 +14,7 @@ use todoist::{
         file_manager::FileManager,
         model_manager::ModelManager,
     },
-    sync::{client::Client, Request},
+    sync::{client::Client, Request, ResourceType},
 };
 use uuid::Uuid;
 
@@ -208,7 +208,7 @@ fn complete_item(number: usize, model: &mut Model) -> Result<&Item> {
 async fn full_sync(model: &mut Model, client: &Client) -> Result<()> {
     let request_body = Request {
         sync_token: "*".to_string(),
-        resource_types: vec!["all".to_string()],
+        resource_types: vec![ResourceType::All],
         commands: model.commands.clone(),
     };
 
@@ -227,7 +227,7 @@ async fn full_sync(model: &mut Model, client: &Client) -> Result<()> {
 async fn incremental_sync(model: &mut Model, client: &Client) -> Result<()> {
     let request_body = Request {
         sync_token: model.sync_token.clone(),
-        resource_types: vec!["all".to_string()],
+        resource_types: vec![ResourceType::All],
         // HACK: no clone here plz
         commands: model.commands.clone(),
     };
