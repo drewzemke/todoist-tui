@@ -56,10 +56,8 @@ impl Model {
                 .iter()
                 .for_each(|(temp_id, real_id)| {
                     // HACK: should we do something else if we don't find a match?
-                    if let Some(matching_item) = self
-                        .items
-                        .iter_mut()
-                        .find(|item| item.id == temp_id.to_string())
+                    if let Some(matching_item) =
+                        self.items.iter_mut().find(|item| item.id == *temp_id)
                     {
                         matching_item.id = real_id.clone();
                     }

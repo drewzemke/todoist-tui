@@ -152,7 +152,7 @@ fn add_item(item: &str, model: &mut Model) {
     let inbox_id = &model.user.inbox_project_id;
 
     // FIXME: should Item.id be a uuid?? probs
-    let item_id = Uuid::new_v4();
+    let item_id = Uuid::new_v4().to_string();
     let new_item = Item {
         id: item_id.to_string(),
         project_id: inbox_id.clone(),

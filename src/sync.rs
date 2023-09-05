@@ -19,7 +19,7 @@ pub struct Response {
 
     pub sync_status: Option<HashMap<Uuid, Status>>,
 
-    pub temp_id_mapping: HashMap<Uuid, String>,
+    pub temp_id_mapping: HashMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

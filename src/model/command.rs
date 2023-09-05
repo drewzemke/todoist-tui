@@ -6,7 +6,7 @@ pub struct Command {
     #[serde(rename = "type")]
     pub request_type: String,
     pub uuid: Uuid,
-    pub temp_id: Option<Uuid>,
+    pub temp_id: Option<String>,
     pub args: Args,
 }
 
