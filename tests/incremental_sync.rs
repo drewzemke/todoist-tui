@@ -1,7 +1,7 @@
 #![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
 // HACK: turn this off at some point
 #![allow(clippy::too_many_lines)]
-mod test_utils;
+pub mod test_utils;
 
 #[cfg(test)]
 pub mod sync {

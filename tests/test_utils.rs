@@ -40,6 +40,7 @@ mod wiremock_wrapper {
             self
         }
 
+        #[must_use]
         pub fn uri(&self) -> String {
             self.mock_server.uri()
         }
@@ -63,11 +64,17 @@ mod assert_fs_wrapper {
     }
 
     impl FsMockBuilder {
+        /// # Errors
+        ///
+        /// Returns an error if the mock directory cannot be created.
         pub fn new() -> Result<Self> {
             let mock_dir = TempDir::new()?;
             Ok(FsMockBuilder { mock_dir })
         }
 
+        /// # Errors
+        ///
+        /// Returns an error if the mock directory cannot be written to.
         pub fn mock_file_contents<T>(self, path: &str, contents: T) -> Result<Self>
         where
             T: Display,
@@ -78,6 +85,7 @@ mod assert_fs_wrapper {
             Ok(self)
         }
 
+        #[must_use]
         pub fn path(&self) -> &Path {
             self.mock_dir.path()
         }
