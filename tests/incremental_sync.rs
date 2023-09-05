@@ -1,6 +1,4 @@
 #![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
-// HACK: turn this off at some point
-#![allow(clippy::too_many_lines)]
 pub mod test_utils;
 
 #[cfg(test)]
@@ -28,6 +26,10 @@ pub mod sync {
             .mock_file_contents("client_auth.toml", "api_token = \"MOCK_API_TOKEN\"")?;
         let mock_data_dir = mock_fs.path();
 
+        // mock data
+        let mock_item_1 = Item::new("Todo One!", "MOCK_INBOX_PROJECT_ID");
+        let mock_item_2 = Item::new("Todo Two!", "MOCK_INBOX_PROJECT_ID");
+
         // set up mock server
         let mock_server = ApiMockBuilder::new()
             .await
@@ -42,20 +44,7 @@ pub mod sync {
                 },
                 Response {
                     full_sync: true,
-                    items: vec![
-                        Item {
-                            id: "MOCK_ITEM_ID_1".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo One!".to_string(),
-                            checked: false,
-                        },
-                        Item {
-                            id: "MOCK_ITEM_ID_2".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo Two!".to_string(),
-                            checked: false,
-                        },
-                    ],
+                    items: vec![mock_item_1, mock_item_2],
                     sync_status: None,
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::new(),
@@ -87,7 +76,11 @@ pub mod sync {
 
     #[test]
     fn get_inbox_items_from_local() -> Result<()> {
-        // create mock `sync.json`
+        // mock data
+        let mock_item_1 = Item::new("Todo One!", "MOCK_INBOX_PROJECT_ID");
+        let mock_item_2 = Item::new("Todo Two!", "MOCK_INBOX_PROJECT_ID");
+
+        // mock `sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "sync.json",
             serde_json::to_string_pretty(&Model {
@@ -96,20 +89,7 @@ pub mod sync {
                     full_name: "Drew".to_string(),
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                 },
-                items: vec![
-                    Item {
-                        id: "MOCK_ITEM_ID_1".to_string(),
-                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                        content: "Todo One!".to_string(),
-                        checked: false,
-                    },
-                    Item {
-                        id: "MOCK_ITEM_ID_2".to_string(),
-                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                        content: "Todo Two!".to_string(),
-                        checked: false,
-                    },
-                ],
+                items: vec![mock_item_1, mock_item_2],
                 commands: vec![],
             })?,
         )?;
@@ -135,6 +115,10 @@ pub mod sync {
 
     #[test]
     fn add_todo_to_local_no_sync() -> Result<()> {
+        // mock data
+        let mock_item_1 = Item::new("Todo One!", "MOCK_INBOX_PROJECT_ID");
+        let mock_item_2 = Item::new("Todo Two!", "MOCK_INBOX_PROJECT_ID");
+
         // create mock and `sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "sync.json",
@@ -144,20 +128,7 @@ pub mod sync {
                     full_name: "Drew".to_string(),
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                 },
-                items: vec![
-                    Item {
-                        id: "MOCK_ITEM_ID_1".to_string(),
-                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                        content: "Todo One!".to_string(),
-                        checked: false,
-                    },
-                    Item {
-                        id: "MOCK_ITEM_ID_2".to_string(),
-                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                        content: "Todo Two!".to_string(),
-                        checked: false,
-                    },
-                ],
+                items: vec![mock_item_1, mock_item_2],
                 commands: vec![],
             })?,
         )?;
@@ -192,6 +163,10 @@ pub mod sync {
 
     #[test]
     fn complete_todo_no_sync() -> Result<()> {
+        // mock data
+        let mock_item_1 = Item::new("Todo One!", "MOCK_INBOX_PROJECT_ID");
+        let mock_item_2 = Item::new("Todo Two!", "MOCK_INBOX_PROJECT_ID");
+
         // create mock and `sync.json`
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "sync.json",
@@ -201,20 +176,7 @@ pub mod sync {
                     full_name: "Drew".to_string(),
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                 },
-                items: vec![
-                    Item {
-                        id: "MOCK_ITEM_ID_1".to_string(),
-                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                        content: "Todo One!".to_string(),
-                        checked: false,
-                    },
-                    Item {
-                        id: "MOCK_ITEM_ID_2".to_string(),
-                        project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                        content: "Todo Two!".to_string(),
-                        checked: false,
-                    },
-                ],
+                items: vec![mock_item_1, mock_item_2],
                 commands: vec![],
             })?,
         )?;
@@ -260,8 +222,12 @@ pub mod sync {
 
     #[tokio::test]
     async fn full_sync_send_new_todo() -> Result<()> {
-        let new_item_temp_id = Uuid::new_v4();
+        // mock data
         let command_uuid = Uuid::new_v4();
+        let mock_item_1 = Item::new("Todo One!", "MOCK_INBOX_PROJECT_ID");
+        let mock_item_2 = Item::new("Todo Two!", "MOCK_INBOX_PROJECT_ID");
+        let mock_item_3 = Item::new("Todo Three!", "MOCK_INBOX_PROJECT_ID");
+        let mock_item_2_updated = Item::new("Todo Two!", "MOCK_INBOX_PROJECT_ID");
 
         // create mock `sync.json`
         let mock_fs = FsMockBuilder::new()?
@@ -274,23 +240,10 @@ pub mod sync {
                         full_name: "Drew".to_string(),
                         inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                     },
-                    items: vec![
-                        Item {
-                            id: "MOCK_ITEM_ID_1".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo One!".to_string(),
-                            checked: false,
-                        },
-                        Item {
-                            id: new_item_temp_id.to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo Two!".to_string(),
-                            checked: false,
-                        },
-                    ],
+                    items: vec![mock_item_1.clone(), mock_item_2.clone()],
                     commands: vec![command::Command {
                         request_type: "item_add".to_owned(),
-                        temp_id: Some(new_item_temp_id.to_string()),
+                        temp_id: Some(mock_item_2.id.clone()),
                         uuid: command_uuid,
                         args: Args::AddItemCommandArgs(AddItemArgs {
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
@@ -316,30 +269,15 @@ pub mod sync {
                 Response {
                     full_sync: true,
                     items: vec![
-                        Item {
-                            id: "MOCK_ITEM_ID_1".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo One!".to_string(),
-                            checked: false,
-                        },
-                        Item {
-                            id: "MOCK_ITEM_ID_2_NEW".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo Two!".to_string(),
-                            checked: false,
-                        },
-                        Item {
-                            id: "MOCK_ITEM_ID_3".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo Three!".to_string(),
-                            checked: false,
-                        },
+                        mock_item_1.clone(),
+                        mock_item_2_updated.clone(),
+                        mock_item_3.clone(),
                     ],
                     sync_status: Some(HashMap::from([(command_uuid, Status::Ok)])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(
-                        new_item_temp_id.to_string(),
-                        "MOCK_ITEM_ID_2_NEW".to_string(),
+                        mock_item_2.id.clone(),
+                        mock_item_2_updated.id.clone(),
                     )]),
                     user: Some(User {
                         full_name: "Drew".to_string(),
@@ -367,9 +305,9 @@ pub mod sync {
 
         assert_eq!(sync_data.sync_token, "NEW_MOCK_SYNC_TOKEN");
         assert_eq!(sync_data.items.len(), 3);
-        assert_eq!(sync_data.items[0].id, "MOCK_ITEM_ID_1");
-        assert_eq!(sync_data.items[1].id, "MOCK_ITEM_ID_2_NEW");
-        assert_eq!(sync_data.items[2].id, "MOCK_ITEM_ID_3");
+        assert_eq!(sync_data.items[0].id, mock_item_1.id);
+        assert_eq!(sync_data.items[1].id, mock_item_2_updated.id);
+        assert_eq!(sync_data.items[2].id, mock_item_3.id);
 
         // check that a commands list in the data file is now empty
         assert_eq!(sync_data.commands.len(), 0);
@@ -379,8 +317,11 @@ pub mod sync {
 
     #[tokio::test]
     async fn incremental_sync_send_new_todo() -> Result<()> {
-        let new_item_temp_id = Uuid::new_v4();
+        // mock data
         let command_uuid = Uuid::new_v4();
+        let mock_item_1 = Item::new("Todo One!", "MOCK_INBOX_PROJECT_ID");
+        let mock_item_2 = Item::new("Todo Two!", "MOCK_INBOX_PROJECT_ID");
+        let mock_item_2_updated = Item::new("Todo Two!", "MOCK_INBOX_PROJECT_ID");
 
         // create mock `sync.json` and `commands.json`
         let mock_fs = FsMockBuilder::new()?
@@ -393,23 +334,10 @@ pub mod sync {
                         full_name: "Drew".to_string(),
                         inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                     },
-                    items: vec![
-                        Item {
-                            id: "MOCK_ITEM_ID_1".to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo One!".to_string(),
-                            checked: false,
-                        },
-                        Item {
-                            id: new_item_temp_id.to_string(),
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
-                            content: "Todo Two!".to_string(),
-                            checked: false,
-                        },
-                    ],
+                    items: vec![mock_item_1.clone(), mock_item_2.clone()],
                     commands: vec![command::Command {
                         request_type: "item_add".to_owned(),
-                        temp_id: Some(new_item_temp_id.to_string()),
+                        temp_id: Some(mock_item_2.id.clone()),
                         uuid: command_uuid,
                         args: Args::AddItemCommandArgs(AddItemArgs {
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
@@ -438,8 +366,8 @@ pub mod sync {
                     sync_status: Some(HashMap::from([(command_uuid, Status::Ok)])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(
-                        new_item_temp_id.to_string(),
-                        "MOCK_ITEM_ID_2_NEW".to_string(),
+                        mock_item_2.id.clone(),
+                        mock_item_2_updated.id.clone(),
                     )]),
                     user: None,
                 },
@@ -464,8 +392,8 @@ pub mod sync {
 
         assert_eq!(sync_data.sync_token, "NEW_MOCK_SYNC_TOKEN");
         assert_eq!(sync_data.items.len(), 2);
-        assert_eq!(sync_data.items[0].id, "MOCK_ITEM_ID_1");
-        assert_eq!(sync_data.items[1].id, "MOCK_ITEM_ID_2_NEW");
+        assert_eq!(sync_data.items[0].id, mock_item_1.id);
+        assert_eq!(sync_data.items[1].id, mock_item_2_updated.id);
 
         // check that a commands list in the data file is now empty
         assert_eq!(sync_data.commands.len(), 0);

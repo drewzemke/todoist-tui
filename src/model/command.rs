@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Command {
+    // TODO: enumify this
     #[serde(rename = "type")]
     pub request_type: String,
     pub uuid: Uuid,

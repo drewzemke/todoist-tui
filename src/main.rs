@@ -151,25 +151,18 @@ async fn main() -> Result<()> {
 fn add_item(item: &str, model: &mut Model) {
     let inbox_id = &model.user.inbox_project_id;
 
-    // FIXME: should Item.id be a uuid?? probs
-    let item_id = Uuid::new_v4().to_string();
-    let new_item = Item {
-        id: item_id.to_string(),
-        project_id: inbox_id.clone(),
-        content: item.to_owned(),
-        checked: false,
-    };
-    model.items.push(new_item);
+    let new_item = Item::new(item, inbox_id);
 
     model.commands.push(command::Command {
         request_type: "item_add".to_string(),
-        temp_id: Some(item_id),
+        temp_id: Some(new_item.id.to_string()),
         uuid: Uuid::new_v4(),
         args: CommandArgs::AddItemCommandArgs(AddItemArgs {
             project_id: inbox_id.clone(),
             content: item.to_string(),
         }),
     });
+    model.items.push(new_item);
 }
 
 fn complete_item(number: usize, model: &mut Model) -> Result<&Item> {
