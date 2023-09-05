@@ -31,7 +31,7 @@ todoist complete 2
   - [x] bring in `anyhow`
   - [x] build a type to represent the data model / storage
   - [x] separate modules for file handling and api reqs
-  - [ ] separate modules for data types (model, items, etc)
+  - [x] separate modules for data types (model, items, etc)
   - [ ] dry up tests, separate by behavior
 
 ### new functionality

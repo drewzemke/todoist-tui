@@ -8,8 +8,14 @@ pub mod sync {
     use anyhow::Result;
     use assert_cmd::Command;
     use std::{collections::HashMap, fs};
-    use todoist::sync::{
-        self, AddItemCommandArgs, CommandArgs, Item, Model, Request, Response, User,
+    use todoist::{
+        model::{
+            command::{self, AddItemArgs, Args},
+            item::Item,
+            user::User,
+            Model,
+        },
+        sync::{Request, Response},
     };
     use uuid::Uuid;
 
@@ -279,11 +285,11 @@ pub mod sync {
                             checked: false,
                         },
                     ],
-                    commands: vec![sync::Command {
+                    commands: vec![command::Command {
                         request_type: "item_add".to_owned(),
                         temp_id: Some(new_item_temp_id),
                         uuid: command_uuid,
-                        args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
+                        args: Args::AddItemCommandArgs(AddItemArgs {
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Two!".to_string(),
                         }),
@@ -398,11 +404,11 @@ pub mod sync {
                             checked: false,
                         },
                     ],
-                    commands: vec![sync::Command {
+                    commands: vec![command::Command {
                         request_type: "item_add".to_owned(),
                         temp_id: Some(new_item_temp_id),
                         uuid: command_uuid,
-                        args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
+                        args: Args::AddItemCommandArgs(AddItemArgs {
                             project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                             content: "Todo Two!".to_string(),
                         }),

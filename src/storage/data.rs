@@ -1,6 +1,7 @@
+use crate::model::Model;
+
 // TODO: move/rename to 'model/manager.rs'
 use super::file::Manager as FileManager;
-use crate::sync::Model;
 use anyhow::{Context, Result};
 
 const MODEL_FILE_NAME: &str = "sync.json";

@@ -4,15 +4,17 @@ use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
 use todoist::{
+    model::{
+        command::{self, AddItemArgs, Args as CommandArgs, CompleteItemArgs},
+        item::Item,
+        Model,
+    },
     storage::{
         config::{Auth, Manager as ConfigManager},
         data::Manager as ModelManager,
         file::Manager as FileManager,
     },
-    sync::{
-        self, client::Client, AddItemCommandArgs, CommandArgs, CompleteItemCommandArgs, Item,
-        Model, Request,
-    },
+    sync::{client::Client, Request},
 };
 use uuid::Uuid;
 
@@ -159,11 +161,11 @@ fn add_item(item: &str, model: &mut Model) {
     };
     model.items.push(new_item);
 
-    model.commands.push(sync::Command {
+    model.commands.push(command::Command {
         request_type: "item_add".to_string(),
         temp_id: Some(item_id),
         uuid: Uuid::new_v4(),
-        args: CommandArgs::AddItemCommandArgs(AddItemCommandArgs {
+        args: CommandArgs::AddItemCommandArgs(AddItemArgs {
             project_id: inbox_id.clone(),
             content: item.to_string(),
         }),
@@ -184,11 +186,11 @@ fn complete_item(number: usize, model: &mut Model) -> Result<&Item> {
     };
 
     // create a new command and store it
-    model.commands.push(sync::Command {
+    model.commands.push(command::Command {
         request_type: "item_complete".to_owned(),
         temp_id: None,
         uuid: Uuid::new_v4(),
-        args: CommandArgs::CompleteItemCommandArgs(CompleteItemCommandArgs {
+        args: CommandArgs::CompleteItemCommandArgs(CompleteItemArgs {
             id: item_id.clone(),
         }),
     });
