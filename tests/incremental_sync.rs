@@ -15,7 +15,7 @@ pub mod sync {
             user::User,
             Model,
         },
-        sync::{Request, Response},
+        sync::{Request, Response, Status},
     };
     use uuid::Uuid;
 
@@ -329,10 +329,7 @@ pub mod sync {
                             checked: false,
                         },
                     ],
-                    sync_status: Some(HashMap::from([(
-                        command_uuid.to_string(),
-                        "ok".to_string(),
-                    )])),
+                    sync_status: Some(HashMap::from([(command_uuid, Status::Ok)])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(
                         new_item_temp_id,
@@ -429,10 +426,7 @@ pub mod sync {
                 Response {
                     full_sync: false,
                     items: vec![],
-                    sync_status: Some(HashMap::from([(
-                        command_uuid.to_string(),
-                        "ok".to_string(),
-                    )])),
+                    sync_status: Some(HashMap::from([(command_uuid, Status::Ok)])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(
                         new_item_temp_id,

@@ -17,9 +17,7 @@ pub struct Response {
 
     pub full_sync: bool,
 
-    // TODO: make value type more specific?
-    // also key type should probs be a UUID
-    pub sync_status: Option<HashMap<String, String>>,
+    pub sync_status: Option<HashMap<Uuid, Status>>,
 
     pub temp_id_mapping: HashMap<Uuid, String>,
 }
@@ -30,4 +28,20 @@ pub struct Request {
     // TODO: stronger typing
     pub resource_types: Vec<String>,
     pub sync_token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum Status {
+    #[serde(rename = "ok")]
+    Ok,
+    #[serde(untagged)]
+    Error(StatusError),
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct StatusError {
+    #[serde(rename = "error_code")]
+    pub code: u32,
+    #[serde(rename = "error")]
+    pub message: String,
 }

@@ -1,9 +1,7 @@
+use self::{command::Command, item::Item, user::User};
+use crate::sync::{Response, Status};
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-
-use crate::sync::Response;
-
-use self::{command::Command, item::Item, user::User};
 
 pub mod command;
 pub mod item;
@@ -72,8 +70,8 @@ impl Model {
         if let Some(ref status_map) = response.sync_status {
             self.commands.retain(|command| {
                 !status_map
-                    .get(&command.uuid.to_string())
-                    .is_some_and(|status| status == "ok")
+                    .get(&command.uuid)
+                    .is_some_and(|status| *status == Status::Ok)
             });
         }
     }
