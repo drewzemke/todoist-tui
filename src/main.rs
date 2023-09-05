@@ -10,9 +10,9 @@ use todoist::{
         Model,
     },
     storage::{
-        config::{Auth, Manager as ConfigManager},
-        data::Manager as ModelManager,
-        file::Manager as FileManager,
+        config_manager::{Auth, ConfigManager},
+        file_manager::FileManager,
+        model_manager::ModelManager,
     },
     sync::{client::Client, Request},
 };

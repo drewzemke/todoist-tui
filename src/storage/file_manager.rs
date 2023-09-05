@@ -6,11 +6,11 @@ use std::{
 
 const APP_DATA_DIR_NAME: &str = "tuido";
 
-pub struct Manager {
+pub struct FileManager {
     data_dir: PathBuf,
 }
 
-impl Manager {
+impl FileManager {
     /// # Errors
     ///
     /// Returns an error if the local data directory cannot be found.

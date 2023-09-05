@@ -1,4 +1,4 @@
-use super::file::Manager as FileManager;
+use super::file_manager::FileManager;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
@@ -9,11 +9,11 @@ pub struct Auth {
     pub api_token: String,
 }
 
-pub struct Manager<'a> {
+pub struct ConfigManager<'a> {
     file_manager: &'a FileManager,
 }
 
-impl<'a> Manager<'a> {
+impl<'a> ConfigManager<'a> {
     #[must_use]
     pub fn new(file_manager: &'a FileManager) -> Self {
         Self { file_manager }

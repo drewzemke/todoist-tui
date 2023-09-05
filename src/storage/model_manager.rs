@@ -1,16 +1,14 @@
+use super::file_manager::FileManager;
 use crate::model::Model;
-
-// TODO: move/rename to 'model/manager.rs'
-use super::file::Manager as FileManager;
 use anyhow::{Context, Result};
 
 const MODEL_FILE_NAME: &str = "sync.json";
 
-pub struct Manager<'a> {
+pub struct ModelManager<'a> {
     file_manager: &'a FileManager,
 }
 
-impl<'a> Manager<'a> {
+impl<'a> ModelManager<'a> {
     #[must_use]
     pub fn new(file_manager: &'a FileManager) -> Self {
         Self { file_manager }
