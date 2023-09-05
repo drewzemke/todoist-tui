@@ -34,6 +34,7 @@ todoist complete 2
   - [ ] separate modules for data types (model, items, etc)
   - [ ] dry up tests, separate by behavior
 
+### new functionality
 - [x] complete a todo
   - [ ] attach completed date when completing a todo
 - [ ] add/display a todo with a due date

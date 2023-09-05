@@ -154,23 +154,6 @@ pub struct CompleteItemCommandArgs {
     // pub completed_date: ????,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProjectDataRequest {
-    pub project_id: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ProjectDataResponse {
-    pub project: Project,
-    pub items: Vec<Item>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Project {
-    pub id: String,
-    pub name: String,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Item {
     pub id: String,
