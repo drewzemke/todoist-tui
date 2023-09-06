@@ -6,7 +6,7 @@ pub mod sync {
     use anyhow::Result;
     use assert_cmd::Command;
     use std::{collections::HashMap, fs};
-    use todoist::{
+    use tod::{
         model::{
             command::{self, AddItemArgs, Args},
             item::Item,
@@ -58,7 +58,7 @@ pub mod sync {
         let server_url = mock_server.uri();
 
         // run the thing
-        let mut cmd = Command::cargo_bin("todoist")?;
+        let mut cmd = Command::cargo_bin("tod")?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("sync");
@@ -99,7 +99,7 @@ pub mod sync {
         // accidental calls to the real api
         let server_url = "fake/server/url";
 
-        let mut cmd = assert_cmd::Command::cargo_bin("todoist")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("list");
@@ -138,7 +138,7 @@ pub mod sync {
         // accidental calls to the real api
         let server_url = "fake/server/url";
 
-        let mut cmd = assert_cmd::Command::cargo_bin("todoist")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("add").arg("new todo!");
@@ -186,7 +186,7 @@ pub mod sync {
         // accidental calls to the real api
         let server_url = "fake/server/url";
 
-        let mut cmd = assert_cmd::Command::cargo_bin("todoist")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("complete").arg("1");
@@ -207,7 +207,7 @@ pub mod sync {
         assert_eq!(model.commands[0].request_type, "item_complete");
 
         // the completed todo should no longer appear when running 'list'
-        let mut cmd = assert_cmd::Command::cargo_bin("todoist")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("list");
@@ -288,7 +288,7 @@ pub mod sync {
             .await;
         let server_url = mock_server.uri();
 
-        let mut cmd = assert_cmd::Command::cargo_bin("todoist")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("sync");
@@ -375,7 +375,7 @@ pub mod sync {
             .await;
         let server_url = mock_server.uri();
 
-        let mut cmd = assert_cmd::Command::cargo_bin("todoist")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
         cmd.arg("--local-dir").arg(mock_data_dir);
         cmd.arg("--sync-url").arg(server_url);
         cmd.arg("sync").arg("--incremental");

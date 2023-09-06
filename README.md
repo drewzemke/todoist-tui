@@ -1,25 +1,25 @@
-# Drew's Rust Todoist Client / TUI App 
+# `tod-ui`, a Todoist TUI & CLI App 
 
 ## CLI Usage
 
 ```shell
 # Get your API token from the Todoist web app first, then store it:
-todoist set-token [your_api_key]
+tod set-token [your_api_key]
 
 # Sync your data with Todoist's servers:
-todoist sync
+tod sync
 
 # Add some todos to your inbox:
-todoist add "Do a barrel roll!"
-todoist add "Use the boost to get through!"
+tod add "Do a barrel roll!"
+tod add "Use the boost to get through!"
 
 # List the contents of your inbox:
-todoist list
+tod list
 > [1] "Do a barrel roll!"
 > [2] "Use the boost to get through!"
 
 # Mark a todo complete using its number in the list:
-todoist complete 2
+tod complete 2
 ```
 
 ---

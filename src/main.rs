@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
-use todoist::{
+use tod::{
     model::{
         command::{self, AddItemArgs, Args as CommandArgs, CompleteItemArgs},
         item::Item,
