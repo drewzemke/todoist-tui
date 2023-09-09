@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
 use tod::{
     model::{
-        command::{self, AddItemArgs, Args as CommandArgs, CompleteItemArgs},
+        command::{self, Args as CommandArgs, CompleteItemArgs},
         item::Item,
         Model,
     },
@@ -93,7 +93,7 @@ async fn main() -> Result<()> {
     match args.command {
         Command::AddTodo { todo, no_sync } => {
             let mut model = model_manager.read_model()?;
-            add_item(&todo, &mut model);
+            model.add_item(&todo);
             println!("'{todo}' added to inbox.");
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
@@ -142,27 +142,6 @@ async fn main() -> Result<()> {
     };
 
     Ok(())
-}
-
-// create new item
-// append to item list in model
-// create command
-// append to commands list
-fn add_item(item: &str, model: &mut Model) {
-    let inbox_id = &model.user.inbox_project_id;
-
-    let new_item = Item::new(item, inbox_id);
-
-    model.commands.push(command::Command {
-        request_type: "item_add".to_string(),
-        temp_id: Some(new_item.id.to_string()),
-        uuid: Uuid::new_v4(),
-        args: CommandArgs::AddItemCommandArgs(AddItemArgs {
-            project_id: inbox_id.clone(),
-            content: item.to_string(),
-        }),
-    });
-    model.items.push(new_item);
 }
 
 fn complete_item(number: usize, model: &mut Model) -> Result<&Item> {

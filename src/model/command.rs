@@ -11,20 +11,20 @@ pub struct Command {
     pub args: Args,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum Args {
     AddItemCommandArgs(AddItemArgs),
     CompleteItemCommandArgs(CompleteItemArgs),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct AddItemArgs {
     pub project_id: String,
     pub content: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct CompleteItemArgs {
     pub id: String,
     // TODO:

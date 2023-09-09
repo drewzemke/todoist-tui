@@ -1,7 +1,12 @@
-use self::{command::Command, item::Item, user::User};
+use self::{
+    command::{AddItemArgs, Args, Command},
+    item::Item,
+    user::User,
+};
 use crate::sync::{Response, Status};
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 pub mod command;
 pub mod item;
@@ -16,6 +21,21 @@ pub struct Model {
 }
 
 impl Model {
+    pub fn add_item(&mut self, item: &str) {
+        let new_item = Item::new(item, &self.user.inbox_project_id);
+
+        self.commands.push(command::Command {
+            request_type: "item_add".to_string(),
+            temp_id: Some(new_item.id.to_string()),
+            uuid: Uuid::new_v4(),
+            args: Args::AddItemCommandArgs(AddItemArgs {
+                project_id: self.user.inbox_project_id.clone(),
+                content: item.to_string(),
+            }),
+        });
+        self.items.push(new_item);
+    }
+
     /// # Errors
     ///
     /// Returns an error if an item with the given id is not found.
@@ -83,5 +103,28 @@ impl Default for Model {
             user: User::default(),
             commands: vec![],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn add_item_to_model() {
+        let mut model = Model::default();
+        model.user.inbox_project_id = "INBOX_ID".to_string();
+        model.add_item("New item!");
+
+        assert_eq!(model.items[0].project_id, "INBOX_ID");
+        assert_eq!(model.items[0].content, "New item!");
+        assert_eq!(model.commands[0].request_type, "item_add");
+        assert_eq!(
+            model.commands[0].args,
+            Args::AddItemCommandArgs(AddItemArgs {
+                project_id: "INBOX_ID".to_string(),
+                content: "New item!".to_string()
+            })
+        );
     }
 }
