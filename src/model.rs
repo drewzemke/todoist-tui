@@ -1,5 +1,5 @@
 use self::{
-    command::{AddItemArgs, Args, Command},
+    command::{AddItemArgs, Args, Command, CompleteItemArgs},
     item::Item,
     user::User,
 };
@@ -46,6 +46,16 @@ impl Model {
             .find(|item| item.id == item_id)
             .ok_or(anyhow!("Could not find item to complete"))?;
         item.mark_complete();
+
+        self.commands.push(Command {
+            request_type: "item_complete".to_owned(),
+            temp_id: None,
+            uuid: Uuid::new_v4(),
+            args: Args::CompleteItemCommandArgs(CompleteItemArgs {
+                id: item.id.clone(),
+            }),
+        });
+
         Ok(item)
     }
 
@@ -125,6 +135,24 @@ mod tests {
                 project_id: "INBOX_ID".to_string(),
                 content: "New item!".to_string()
             })
+        );
+    }
+
+    #[test]
+    fn mark_item_completed() {
+        let mut model = Model::default();
+        let item = Item::new("Item!", "INBOX_ID");
+        let item_id = item.id.clone();
+        model.items.push(item);
+        model
+            .complete_item(&item_id)
+            .expect("Test: could not complete item");
+
+        assert!(model.items[0].checked);
+        assert_eq!(model.commands[0].request_type, "item_complete");
+        assert_eq!(
+            model.commands[0].args,
+            Args::CompleteItemCommandArgs(CompleteItemArgs { id: item_id })
         );
     }
 }

@@ -4,11 +4,7 @@ use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
 use tod::{
-    model::{
-        command::{self, Args as CommandArgs, CompleteItemArgs},
-        item::Item,
-        Model,
-    },
+    model::{item::Item, Model},
     storage::{
         config_manager::{Auth, ConfigManager},
         file_manager::FileManager,
@@ -16,7 +12,6 @@ use tod::{
     },
     sync::{client::Client, Request, ResourceType},
 };
-use uuid::Uuid;
 
 #[derive(Parser)]
 #[command(author)]
@@ -146,33 +141,21 @@ async fn main() -> Result<()> {
 
 fn complete_item(number: usize, model: &mut Model) -> Result<&Item> {
     // look at the current inbox and determine which task is targeted
-    let (item_id, num_items) = {
-        let inbox_items = model.get_inbox_items();
-        let item = inbox_items.get(number - 1).ok_or_else(|| {
-            anyhow!(
-                "'{number}' is outside of the valid range. Pass a number between 1 and {}.",
-                inbox_items.len()
-            )
-        })?;
-        (item.id.clone(), inbox_items.len())
-    };
+    let inbox_items = model.get_inbox_items();
+    let num_items = inbox_items.len();
 
-    // create a new command and store it
-    model.commands.push(command::Command {
-        request_type: "item_complete".to_owned(),
-        temp_id: None,
-        uuid: Uuid::new_v4(),
-        args: CommandArgs::CompleteItemCommandArgs(CompleteItemArgs {
-            id: item_id.clone(),
-        }),
-    });
-
-    // update the item's status
-    let completed_item = model.complete_item(&item_id).map_err(|_| {
+    let error_msg = || {
         anyhow!(
             "'{number}' is outside of the valid range. Pass a number between 1 and {num_items}.",
         )
-    })?;
+    };
+
+    let item = inbox_items.get(number - 1).ok_or_else(error_msg)?;
+
+    // update the item's status
+    let completed_item = model
+        .complete_item(&item.id.clone())
+        .map_err(|_| error_msg())?;
 
     Ok(completed_item)
 }
