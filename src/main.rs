@@ -11,13 +11,14 @@ use tod::{
         model_manager::ModelManager,
     },
     sync::client::Client,
+    tui,
 };
 
 #[derive(Parser)]
 #[command(author)]
 struct Args {
     #[command(subcommand)]
-    command: Command,
+    command: Option<CliCommand>,
 
     /// Override the URL for the Todoist Sync API (mostly for testing purposes)
     #[arg(long = "sync-url", hide = true)]
@@ -29,7 +30,7 @@ struct Args {
 }
 
 #[derive(Subcommand)]
-enum Command {
+enum CliCommand {
     /// Add a new todo to your inbox
     #[command(name = "add")]
     AddTodo {
@@ -86,53 +87,56 @@ async fn main() -> Result<()> {
     let model_manager = ModelManager::new(&file_manager);
 
     match args.command {
-        Command::AddTodo { todo, no_sync } => {
-            let mut model = model_manager.read_model()?;
-            model.add_item(&todo);
-            println!("'{todo}' added to inbox.");
-            if !no_sync {
+        None => tui::run()?,
+        Some(command) => match command {
+            CliCommand::AddTodo { todo, no_sync } => {
+                let mut model = model_manager.read_model()?;
+                model.add_item(&todo);
+                println!("'{todo}' added to inbox.");
+                if !no_sync {
+                    let api_token = config_manager.read_auth_config()?.api_token;
+                    let client = Client::new(api_token, args.sync_url);
+                    cli::sync(&mut model, &client, true).await?;
+                }
+                model_manager.write_model(&model)?;
+            }
+
+            CliCommand::CompleteTodo { number, no_sync } => {
+                let mut model = model_manager.read_model()?;
+                let removed_item = cli::complete_item(number, &mut model)?;
+                println!("'{}' marked complete.", removed_item.content);
+                if !no_sync {
+                    let api_token = config_manager.read_auth_config()?.api_token;
+                    let client = Client::new(api_token, args.sync_url);
+                    cli::sync(&mut model, &client, true).await?;
+                }
+                model_manager.write_model(&model)?;
+            }
+
+            CliCommand::ListInbox => {
+                let model = model_manager.read_model()?;
+                let inbox_items = model.get_inbox_items();
+
+                println!("Inbox: ");
+                for (index, Item { content, .. }) in inbox_items.iter().enumerate() {
+                    println!("[{}] {content}", index + 1);
+                }
+            }
+
+            CliCommand::SetApiToken { token } => {
+                config_manager.write_auth_config(&Auth { api_token: token })?;
+                println!("Stored API token.");
+            }
+
+            CliCommand::Sync { incremental } => {
                 let api_token = config_manager.read_auth_config()?.api_token;
                 let client = Client::new(api_token, args.sync_url);
-                cli::sync(&mut model, &client, true).await?;
+                let mut model = model_manager.read_model()?;
+                cli::sync(&mut model, &client, incremental).await?;
+                model_manager.write_model(&model)?;
             }
-            model_manager.write_model(&model)?;
-        }
-
-        Command::CompleteTodo { number, no_sync } => {
-            let mut model = model_manager.read_model()?;
-            let removed_item = cli::complete_item(number, &mut model)?;
-            println!("'{}' marked complete.", removed_item.content);
-            if !no_sync {
-                let api_token = config_manager.read_auth_config()?.api_token;
-                let client = Client::new(api_token, args.sync_url);
-                cli::sync(&mut model, &client, true).await?;
-            }
-            model_manager.write_model(&model)?;
-        }
-
-        Command::ListInbox => {
-            let model = model_manager.read_model()?;
-            let inbox_items = model.get_inbox_items();
-
-            println!("Inbox: ");
-            for (index, Item { content, .. }) in inbox_items.iter().enumerate() {
-                println!("[{}] {content}", index + 1);
-            }
-        }
-
-        Command::SetApiToken { token } => {
-            config_manager.write_auth_config(&Auth { api_token: token })?;
-            println!("Stored API token.");
-        }
-
-        Command::Sync { incremental } => {
-            let api_token = config_manager.read_auth_config()?.api_token;
-            let client = Client::new(api_token, args.sync_url);
-            let mut model = model_manager.read_model()?;
-            cli::sync(&mut model, &client, incremental).await?;
-            model_manager.write_model(&model)?;
-        }
-    };
+        },
+    }
 
     Ok(())
 }
