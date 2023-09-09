@@ -1,16 +1,16 @@
 #![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
-use std::io::{self, Write};
 use tod::{
-    model::{item::Item, Model},
+    cli,
+    model::item::Item,
     storage::{
         config_manager::{Auth, ConfigManager},
         file_manager::FileManager,
         model_manager::ModelManager,
     },
-    sync::{client::Client, Request, ResourceType},
+    sync::client::Client,
 };
 
 #[derive(Parser)]
@@ -93,19 +93,19 @@ async fn main() -> Result<()> {
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
                 let client = Client::new(api_token, args.sync_url);
-                sync(&mut model, &client, true).await?;
+                cli::sync(&mut model, &client, true).await?;
             }
             model_manager.write_model(&model)?;
         }
 
         Command::CompleteTodo { number, no_sync } => {
             let mut model = model_manager.read_model()?;
-            let removed_item = complete_item(number, &mut model)?;
+            let removed_item = cli::complete_item(number, &mut model)?;
             println!("'{}' marked complete.", removed_item.content);
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
                 let client = Client::new(api_token, args.sync_url);
-                sync(&mut model, &client, true).await?;
+                cli::sync(&mut model, &client, true).await?;
             }
             model_manager.write_model(&model)?;
         }
@@ -129,56 +129,10 @@ async fn main() -> Result<()> {
             let api_token = config_manager.read_auth_config()?.api_token;
             let client = Client::new(api_token, args.sync_url);
             let mut model = model_manager.read_model()?;
-            sync(&mut model, &client, incremental).await?;
+            cli::sync(&mut model, &client, incremental).await?;
             model_manager.write_model(&model)?;
         }
     };
-
-    Ok(())
-}
-
-fn complete_item(number: usize, model: &mut Model) -> Result<&Item> {
-    // look at the current inbox and determine which task is targeted
-    let inbox_items = model.get_inbox_items();
-    let num_items = inbox_items.len();
-
-    let error_msg = || {
-        anyhow!(
-            "'{number}' is outside of the valid range. Pass a number between 1 and {num_items}.",
-        )
-    };
-
-    let item = inbox_items.get(number - 1).ok_or_else(error_msg)?;
-
-    // update the item's status
-    let completed_item = model
-        .complete_item(&item.id.clone())
-        .map_err(|_| error_msg())?;
-
-    Ok(completed_item)
-}
-
-async fn sync(model: &mut Model, client: &Client, incremental: bool) -> Result<()> {
-    let sync_token = if incremental {
-        model.sync_token.clone()
-    } else {
-        "*".to_string()
-    };
-
-    let request = Request {
-        sync_token,
-        resource_types: vec![ResourceType::All],
-        commands: model.commands.clone(),
-    };
-
-    print!("Syncing... ");
-    io::stdout().flush()?;
-
-    let response = client.make_request(&request).await?;
-    println!("Done.");
-
-    // update the sync_data with the result
-    model.update(response);
 
     Ok(())
 }
