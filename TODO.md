@@ -7,8 +7,8 @@
 - [x] build a type to represent the data model / storage
 - [x] separate modules for file handling and api reqs
 - [x] separate modules for data types (model, items, etc)
-- [ ] dry up tests, separate by behavior
-- [ ] move stuff out of `main.rs` and into `cli.rs` or something
+- [x] dry up tests, separate by behavior
+- [x] move stuff out of `main.rs` and into separate modules
 
 ### Basic Functionality
 - [x] complete a todo
