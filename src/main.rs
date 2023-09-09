@@ -93,10 +93,11 @@ async fn main() -> Result<()> {
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
                 let client = Client::new(api_token, args.sync_url);
-                incremental_sync(&mut model, &client).await?;
+                sync(&mut model, &client, true).await?;
             }
             model_manager.write_model(&model)?;
         }
+
         Command::CompleteTodo { number, no_sync } => {
             let mut model = model_manager.read_model()?;
             let removed_item = complete_item(number, &mut model)?;
@@ -104,10 +105,11 @@ async fn main() -> Result<()> {
             if !no_sync {
                 let api_token = config_manager.read_auth_config()?.api_token;
                 let client = Client::new(api_token, args.sync_url);
-                incremental_sync(&mut model, &client).await?;
+                sync(&mut model, &client, true).await?;
             }
             model_manager.write_model(&model)?;
         }
+
         Command::ListInbox => {
             let model = model_manager.read_model()?;
             let inbox_items = model.get_inbox_items();
@@ -117,22 +119,18 @@ async fn main() -> Result<()> {
                 println!("[{}] {content}", index + 1);
             }
         }
+
         Command::SetApiToken { token } => {
             config_manager.write_auth_config(&Auth { api_token: token })?;
             println!("Stored API token.");
         }
+
         Command::Sync { incremental } => {
             let api_token = config_manager.read_auth_config()?.api_token;
             let client = Client::new(api_token, args.sync_url);
-            if incremental {
-                let mut model = model_manager.read_model()?;
-                incremental_sync(&mut model, &client).await?;
-                model_manager.write_model(&model)?;
-            } else {
-                let mut model = model_manager.read_model()?;
-                full_sync(&mut model, &client).await?;
-                model_manager.write_model(&model)?;
-            }
+            let mut model = model_manager.read_model()?;
+            sync(&mut model, &client, incremental).await?;
+            model_manager.write_model(&model)?;
         }
     };
 
@@ -160,9 +158,15 @@ fn complete_item(number: usize, model: &mut Model) -> Result<&Item> {
     Ok(completed_item)
 }
 
-async fn full_sync(model: &mut Model, client: &Client) -> Result<()> {
-    let request_body = Request {
-        sync_token: "*".to_string(),
+async fn sync(model: &mut Model, client: &Client, incremental: bool) -> Result<()> {
+    let sync_token = if incremental {
+        model.sync_token.clone()
+    } else {
+        "*".to_string()
+    };
+
+    let request = Request {
+        sync_token,
         resource_types: vec![ResourceType::All],
         commands: model.commands.clone(),
     };
@@ -170,27 +174,7 @@ async fn full_sync(model: &mut Model, client: &Client) -> Result<()> {
     print!("Syncing... ");
     io::stdout().flush()?;
 
-    let response = client.make_request(&request_body).await?;
-    println!("Done.");
-
-    // update the sync_data with the result
-    model.update(response);
-
-    Ok(())
-}
-
-async fn incremental_sync(model: &mut Model, client: &Client) -> Result<()> {
-    let request_body = Request {
-        sync_token: model.sync_token.clone(),
-        resource_types: vec![ResourceType::All],
-        // HACK: no clone here plz
-        commands: model.commands.clone(),
-    };
-
-    print!("Syncing... ");
-    io::stdout().flush()?;
-
-    let response = client.make_request(&request_body).await?;
+    let response = client.make_request(&request).await?;
     println!("Done.");
 
     // update the sync_data with the result
