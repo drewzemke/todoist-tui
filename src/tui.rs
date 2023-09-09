@@ -4,7 +4,11 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ratatui::{prelude::CrosstermBackend, widgets::Paragraph, Terminal};
+use ratatui::{
+    prelude::{Backend, CrosstermBackend},
+    widgets::Paragraph,
+    Terminal,
+};
 use std::{
     io::{self, Stdout},
     time::Duration,
@@ -47,10 +51,7 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result
 /// Returns an error if something goes wrong during the TUI execution.
 fn run_main_loop(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
     loop {
-        terminal.draw(|frame| {
-            let message = Paragraph::new("It's TUI time babyyyyy");
-            frame.render_widget(message, frame.size());
-        })?;
+        render(terminal)?;
         if event::poll(Duration::from_millis(250))? {
             if let Event::Key(key) = event::read()? {
                 if KeyCode::Char('q') == key.code {
@@ -60,5 +61,13 @@ fn run_main_loop(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()
         }
     }
 
+    Ok(())
+}
+
+pub fn render<B: Backend>(terminal: &mut Terminal<B>) -> Result<()> {
+    terminal.draw(|frame| {
+        let message = Paragraph::new("It's TUI time babyyyyy");
+        frame.render_widget(message, frame.size());
+    })?;
     Ok(())
 }

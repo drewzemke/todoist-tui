@@ -59,6 +59,7 @@ impl Model {
         Ok(item)
     }
 
+    // TODO: test
     #[must_use]
     pub fn get_inbox_items(&self) -> Vec<&Item> {
         // get the items with the correct id
@@ -69,6 +70,7 @@ impl Model {
             .collect()
     }
 
+    // TODO: test
     pub fn update(&mut self, response: Response) {
         self.sync_token = response.sync_token;
 
