@@ -23,7 +23,7 @@ impl<'a> ConfigManager<'a> {
     ///
     /// Returns an error if the config file cannot be found or read, or if the file
     /// can be read but isn't in the correct format.
-    pub fn read_auth_config(&self) -> Result<Auth> {
+    fn read_auth_config(&self) -> Result<Auth> {
         let file = self
             .file_manager
             .read_data(AUTH_FILE_NAME.into())
@@ -35,6 +35,15 @@ impl<'a> ConfigManager<'a> {
         let config: Auth = toml::from_str(file.as_str())
             .with_context(|| format!("Could not parse config file '{AUTH_FILE_NAME}'"))?;
         Ok(config)
+    }
+
+    /// # Errors
+    ///
+    /// Returns an error if the config file cannot be found or read, or if the file
+    /// can be read but isn't in the correct format.
+    pub fn get_api_token(&self) -> Result<String> {
+        let config = self.read_auth_config()?;
+        Ok(config.api_token)
     }
 
     /// # Errors
