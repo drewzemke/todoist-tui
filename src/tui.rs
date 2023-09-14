@@ -1,3 +1,4 @@
+use crate::model::Model;
 use anyhow::Result;
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -17,9 +18,9 @@ use std::{
 /// # Errors
 ///
 /// Returns an error if something goes wrong during the TUI setup, execution, or teardown.
-pub fn run() -> Result<()> {
+pub fn run(model: &mut Model) -> Result<()> {
     let mut terminal = setup_terminal()?;
-    run_main_loop(&mut terminal)?;
+    run_main_loop(&mut terminal, model)?;
     restore_terminal(&mut terminal)?;
 
     Ok(())
@@ -49,7 +50,10 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result
 /// # Errors
 ///
 /// Returns an error if something goes wrong during the TUI execution.
-fn run_main_loop(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
+fn run_main_loop(
+    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
+    model: &mut Model,
+) -> Result<()> {
     loop {
         render(terminal)?;
         if event::poll(Duration::from_millis(250))? {
@@ -64,6 +68,9 @@ fn run_main_loop(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error if something goes wrong during the render process
 pub fn render<B: Backend>(terminal: &mut Terminal<B>) -> Result<()> {
     terminal.draw(|frame| {
         let message = Paragraph::new("It's TUI time babyyyyy");

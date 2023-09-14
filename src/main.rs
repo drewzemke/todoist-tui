@@ -91,7 +91,12 @@ async fn main() -> Result<()> {
         .map(|token| Client::new(token, args.sync_url));
 
     match args.command {
-        None => tui::run()?,
+        None => {
+            let mut model = model_manager.read_model()?;
+            tui::run(&mut model)?;
+            cli::sync(&mut model, &client?, true).await?;
+            model_manager.write_model(&model)?;
+        }
 
         Some(command) => match command {
             CliCommand::AddTodo { todo, no_sync } => {
