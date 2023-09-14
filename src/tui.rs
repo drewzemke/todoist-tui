@@ -7,7 +7,7 @@ use crossterm::{
 };
 use ratatui::{
     prelude::{Backend, CrosstermBackend},
-    widgets::Paragraph,
+    widgets::{Block, Borders, List, ListItem, Paragraph},
     Terminal,
 };
 use std::{
@@ -55,7 +55,7 @@ fn run_main_loop(
     model: &mut Model,
 ) -> Result<()> {
     loop {
-        render(terminal)?;
+        render(terminal, model)?;
         if event::poll(Duration::from_millis(250))? {
             if let Event::Key(key) = event::read()? {
                 if KeyCode::Char('q') == key.code {
@@ -71,10 +71,20 @@ fn run_main_loop(
 /// # Errors
 ///
 /// Returns an error if something goes wrong during the render process
-pub fn render<B: Backend>(terminal: &mut Terminal<B>) -> Result<()> {
+pub fn render<B: Backend>(terminal: &mut Terminal<B>, model: &mut Model) -> Result<()> {
+    // turn the list of items in the model into a ratatui list
+    let inbox_items: Vec<ListItem> = model
+        .get_inbox_items()
+        .iter()
+        .map(|item| ListItem::new(&item.content[..]))
+        .collect();
+
     terminal.draw(|frame| {
         let message = Paragraph::new("It's TUI time babyyyyy");
+        let inbox_list =
+            List::new(inbox_items).block(Block::default().borders(Borders::ALL).title("Inbox"));
         frame.render_widget(message, frame.size());
+        frame.render_widget(inbox_list, frame.size());
     })?;
     Ok(())
 }

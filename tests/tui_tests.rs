@@ -4,20 +4,19 @@ pub mod test_utils;
 #[cfg(test)]
 pub mod tui_tests {
     use anyhow::Result;
-    use ratatui::{
-        backend::TestBackend,
-        prelude::{Buffer, Rect},
-        Terminal,
-    };
-    use tod::tui::render;
+    use ratatui::{backend::TestBackend, Terminal};
+    use tod::{model::Model, tui::render};
 
     #[test]
     fn run_tui() -> Result<()> {
-        let backend = TestBackend::new(100, 10);
+        let backend = TestBackend::new(100, 100);
         let mut terminal = Terminal::new(backend)?;
+        let mut model = Model::default();
 
-        render(&mut terminal)?;
+        // TODO: this renders the screen, but how do we test interactivity?
+        render(&mut terminal, &mut model)?;
 
+        // TODO: throw in new lines and other chars to get this to pretty print?
         let o: String = terminal
             .backend()
             .buffer()
@@ -26,8 +25,11 @@ pub mod tui_tests {
             .map(|c| c.symbol.clone())
             .collect();
 
-        // TODO: install nightly and try `assert_matches`
-        assert!(o.contains("TUI"));
+        // TODO: write a wrapper around a line like the one below that prints the buffer if the check fails
+        assert!(
+            o.contains("Inbox"),
+            "The string was not found in this buffer:\n {o}"
+        );
 
         Ok(())
     }
