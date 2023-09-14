@@ -86,17 +86,20 @@ async fn main() -> Result<()> {
     let config_manager = ConfigManager::new(&file_manager);
     let model_manager = ModelManager::new(&file_manager);
 
+    let client = config_manager
+        .get_api_token()
+        .map(|token| Client::new(token, args.sync_url));
+
     match args.command {
         None => tui::run()?,
+
         Some(command) => match command {
             CliCommand::AddTodo { todo, no_sync } => {
                 let mut model = model_manager.read_model()?;
                 model.add_item(&todo);
                 println!("'{todo}' added to inbox.");
                 if !no_sync {
-                    let api_token = config_manager.read_auth_config()?.api_token;
-                    let client = Client::new(api_token, args.sync_url);
-                    cli::sync(&mut model, &client, true).await?;
+                    cli::sync(&mut model, &client?, true).await?;
                 }
                 model_manager.write_model(&model)?;
             }
@@ -106,9 +109,7 @@ async fn main() -> Result<()> {
                 let removed_item = cli::complete_item(number, &mut model)?;
                 println!("'{}' marked complete.", removed_item.content);
                 if !no_sync {
-                    let api_token = config_manager.read_auth_config()?.api_token;
-                    let client = Client::new(api_token, args.sync_url);
-                    cli::sync(&mut model, &client, true).await?;
+                    cli::sync(&mut model, &client?, true).await?;
                 }
                 model_manager.write_model(&model)?;
             }
@@ -129,10 +130,8 @@ async fn main() -> Result<()> {
             }
 
             CliCommand::Sync { incremental } => {
-                let api_token = config_manager.read_auth_config()?.api_token;
-                let client = Client::new(api_token, args.sync_url);
                 let mut model = model_manager.read_model()?;
-                cli::sync(&mut model, &client, incremental).await?;
+                cli::sync(&mut model, &client?, incremental).await?;
                 model_manager.write_model(&model)?;
             }
         },
