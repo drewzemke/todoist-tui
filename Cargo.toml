@@ -17,6 +17,7 @@ serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.99"
 tokio = { version = "1.28.2", features = ["full"] }
 toml = "0.7.5"
+tui-input = "0.8.0"
 uuid = { version = "1.4.0", features = ["v4", "serde"] }
 
 [dev-dependencies]

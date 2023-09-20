@@ -5,16 +5,25 @@ pub mod test_utils;
 pub mod tui_tests {
     use anyhow::Result;
     use ratatui::{backend::TestBackend, Terminal};
-    use tod::{model::Model, tui::render};
+    use tod::{
+        model::Model,
+        tui::{render, AppState, Mode},
+    };
+    use tui_input::Input;
 
     #[test]
     fn run_tui() -> Result<()> {
         let backend = TestBackend::new(100, 100);
         let mut terminal = Terminal::new(backend)?;
         let mut model = Model::default();
+        let state = AppState {
+            mode: Mode::Chillin,
+            model: &mut model,
+            input: Input::default(),
+        };
 
         // TODO: this renders the screen, but how do we test interactivity?
-        render(&mut terminal, &mut model)?;
+        render(&mut terminal, &state)?;
 
         // TODO: throw in new lines and other chars to get this to pretty print?
         let o: String = terminal

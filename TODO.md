@@ -2,6 +2,12 @@
 
 ## Tasks
 
+### TUI Time
+- [x] add a todo
+  - [ ] needs tests!
+- [ ] complete a todo
+- [ ] show keybinding hints at the bottom
+
 ### Refactor
 - [x] make tests more modular (specifically for mocking)
 - [x] build a type to represent the data model / storage
