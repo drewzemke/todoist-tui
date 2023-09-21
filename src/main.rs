@@ -94,8 +94,11 @@ async fn main() -> Result<()> {
         None => {
             let mut model = model_manager.read_model()?;
             tui::run(&mut model)?;
-            cli::sync(&mut model, &client?, true).await?;
-            model_manager.write_model(&model)?;
+
+            if !model.commands.is_empty() {
+                cli::sync(&mut model, &client?, true).await?;
+                model_manager.write_model(&model)?;
+            }
         }
 
         Some(command) => match command {
