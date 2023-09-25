@@ -91,3 +91,123 @@ mod assert_fs_wrapper {
         }
     }
 }
+
+#[cfg(test)]
+pub use tui_tester::TuiTester;
+
+#[cfg(test)]
+mod tui_tester {
+    use anyhow::Result;
+    use crossterm::event::{KeyEvent, KeyModifiers};
+    use ratatui::{backend::TestBackend, Terminal};
+    use std::fmt::Write;
+    use tod::tui::app::{App, Mode};
+
+    // TODO: make this generic? just for fun I guess
+    pub struct TuiTester<'a> {
+        terminal: Terminal<TestBackend>,
+        app: App<'a>,
+    }
+
+    impl<'a> TuiTester<'a> {
+        /// Make a new tester.
+        ///
+        /// # Errors
+        /// Returns an error if the test terminal cannot be initialized.
+        pub fn new(app: App<'a>, width: u16, height: u16) -> Result<Self> {
+            let terminal = Terminal::new(TestBackend::new(width, height))?;
+            Ok(Self { terminal, app })
+        }
+
+        /// Renders the buffer and asserts that the given string is visible.
+        ///
+        /// # Panics
+        /// If `needle` cannot be found in the current buffer.
+        ///
+        /// # Errors
+        /// If something goes wrong while drawing to the screen.
+        ///
+        /// # Note
+        /// This currently fails to find strings that are broken up by line breaks
+        pub fn expect_visible(&mut self, needle: &str) -> Result<&mut Self> {
+            let screen = self.render_to_string()?;
+            assert!(
+                screen.contains(needle),
+                "The string '{needle}' was not found on this screen:\n{screen}"
+            );
+            Ok(self)
+        }
+
+        /// Renders the buffer and asserts that the given string is *not* visible.
+        ///
+        /// # Panics
+        /// If `needle` is present be found in the current buffer.
+        ///
+        /// # Errors
+        /// If something goes wrong while drawing to the screen.
+        ///
+        /// # Note
+        /// This currently fails to find strings that are broken up by line breaks
+        pub fn expect_not_visible(&mut self, needle: &str) -> Result<&mut Self> {
+            let screen = self.render_to_string()?;
+            assert!(
+                !screen.contains(needle),
+                "The string '{needle}' was not expected on this screen:\n{screen}"
+            );
+            Ok(self)
+        }
+
+        // TODO: throw in new lines and other chars to get this to pretty print?
+        fn render_to_string(&mut self) -> Result<String> {
+            self.terminal.draw(|frame| {
+                self.app.render(frame);
+            })?;
+            let width = self.terminal.backend().buffer().area.width as usize;
+
+            let screen = self
+                .terminal
+                .backend()
+                .buffer()
+                .content()
+                .iter()
+                .enumerate()
+                .fold(String::new(), |mut string, (index, cell)| {
+                    let _ = write!(string, "{}", cell.symbol);
+                    if (index + 1) % width == 0 {
+                        let _ = write!(string, "\n");
+                    }
+                    string
+                });
+            Ok(screen)
+        }
+
+        /// Assert that the app is in an exiting state.
+        ///
+        /// # Panics
+        /// If it isn't.
+        pub fn expect_exiting(&self) {
+            assert_eq!(self.app.mode, Mode::Exiting);
+        }
+
+        /// Sends the characters in the given string as individual keypresses to the app.
+        /// Note that this does not render the app in between keypresses.
+        pub fn press_keys(&mut self, keys: &str) -> &mut Self {
+            keys.chars().for_each(|c| {
+                self.app.handle_key(KeyEvent::new(
+                    crossterm::event::KeyCode::Char(c),
+                    KeyModifiers::NONE,
+                ));
+            });
+            self
+        }
+
+        /// Sends a enter key press to the app.
+        pub fn press_enter(&mut self) -> &mut Self {
+            self.app.handle_key(KeyEvent::new(
+                crossterm::event::KeyCode::Enter,
+                KeyModifiers::NONE,
+            ));
+            self
+        }
+    }
+}

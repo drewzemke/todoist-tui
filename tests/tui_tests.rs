@@ -3,37 +3,35 @@ pub mod test_utils;
 
 #[cfg(test)]
 pub mod tui_tests {
+    use crate::test_utils::TuiTester;
     use anyhow::Result;
-    use ratatui::{backend::TestBackend, Terminal};
     use tod::{model::Model, tui::app::App};
 
     #[test]
-    fn run_tui() -> Result<()> {
-        let backend = TestBackend::new(100, 100);
-        let mut terminal = Terminal::new(backend)?;
+    fn open_and_close_app() -> Result<()> {
         let mut model = Model::default();
         let app = App::new(&mut model);
 
-        // TODO: this renders the screen, but how do we test interactivity?
+        TuiTester::new(app, 20, 20)?
+            .expect_visible("Inbox")?
+            .press_keys("q")
+            .expect_exiting();
 
-        terminal.draw(|frame| {
-            app.render(frame);
-        })?;
+        Ok(())
+    }
 
-        // TODO: throw in new lines and other chars to get this to pretty print?
-        let o: String = terminal
-            .backend()
-            .buffer()
-            .content()
-            .iter()
-            .map(|c| c.symbol.clone())
-            .collect();
+    #[test]
+    fn add_new_todo() -> Result<()> {
+        let mut model = Model::default();
+        let app = App::new(&mut model);
 
-        // TODO: write a wrapper around a line like the one below that prints the buffer if the check fails
-        assert!(
-            o.contains("Inbox"),
-            "The string was not found in this buffer:\n {o}"
-        );
+        TuiTester::new(app, 30, 10)?
+            .press_keys("a")
+            .expect_visible("New Todo")?
+            .press_keys("new todo text")
+            .press_enter()
+            .expect_not_visible("New Todo")?
+            .expect_visible("new todo text")?;
 
         Ok(())
     }

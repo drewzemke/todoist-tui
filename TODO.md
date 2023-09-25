@@ -4,7 +4,7 @@
 
 ### TUI Time
 - [x] add a todo
-  - [ ] needs tests!
+  - [x] needs tests!
 - [ ] complete a todo
 - [ ] show keybinding hints at the bottom
 

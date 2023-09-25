@@ -9,7 +9,7 @@ use tui_input::{backend::crossterm::EventHandler, Input};
 
 use super::ui::centered_rect;
 
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
     AddingTodo,
     Chillin,
