@@ -11,15 +11,16 @@ use super::ui::centered_rect;
 
 #[derive(PartialEq, Eq)]
 pub enum Mode {
-    Chillin,
     AddingTodo,
+    Chillin,
+    Exiting,
 }
 
 /// Manages the UI state and data model
 pub struct App<'a> {
     pub mode: Mode,
-    pub model: &'a mut Model,
-    pub input: Input,
+    model: &'a mut Model,
+    input: Input,
 }
 
 impl<'a> App<'a> {
@@ -33,13 +34,15 @@ impl<'a> App<'a> {
 
     /// Manages how the whole app reacts to an individual user keypress.
     /// (For now,) returns true if the app should exit.
-    pub fn handle_key(&mut self, key: event::KeyEvent) -> bool {
+    pub fn handle_key(&mut self, key: event::KeyEvent) {
         match self.mode {
             Mode::Chillin => match key.code {
                 KeyCode::Char('a') => {
                     self.mode = Mode::AddingTodo;
                 }
-                KeyCode::Char('q') => return true,
+                KeyCode::Char('q') => {
+                    self.mode = Mode::Exiting;
+                }
                 _ => {}
             },
             Mode::AddingTodo => match key.code {
@@ -56,8 +59,8 @@ impl<'a> App<'a> {
                     self.input.handle_event(&Event::Key(key));
                 }
             },
+            Mode::Exiting => {}
         }
-        false
     }
 
     /// Renders the app state into a terminal frame.

@@ -1,4 +1,4 @@
-use self::app::App;
+use self::app::{App, Mode};
 use crate::model::Model;
 use anyhow::Result;
 use crossterm::{
@@ -57,7 +57,8 @@ fn run_main_loop(
 
         // process input
         if let Event::Key(key) = event::read()? {
-            if app.handle_key(key) {
+            app.handle_key(key);
+            if app.mode == Mode::Exiting {
                 return Ok(());
             }
         }
