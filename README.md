@@ -6,7 +6,7 @@ I'll eventually get around to hosting this on crates.io. For now, you can clone 
 and manually build if you have the Rust toolchain installed.
 
 ```shell
-git clone git@github.com/drewzemke/tod-ui.git
+git clone git@github.com:drewzemke/tod-ui.git
 cd tod-ui
 cargo install --path .
 ```
