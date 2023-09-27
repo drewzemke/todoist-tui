@@ -3,6 +3,7 @@ use anyhow::Result;
 
 const SYNC_URL: &str = "https://api.todoist.com/sync/v9";
 
+#[derive(Clone)]
 pub struct Client {
     client: reqwest::Client,
     sync_url: String,

@@ -19,7 +19,7 @@ pub enum Mode {
 /// Manages the UI state and data model
 pub struct App<'a> {
     pub mode: Mode,
-    model: &'a mut Model,
+    pub model: &'a mut Model,
     input: Input,
 }
 
@@ -33,7 +33,6 @@ impl<'a> App<'a> {
     }
 
     /// Manages how the whole app reacts to an individual user keypress.
-    /// (For now,) returns true if the app should exit.
     pub fn handle_key(&mut self, key: event::KeyEvent) {
         match self.mode {
             Mode::Chillin => match key.code {
@@ -75,10 +74,8 @@ impl<'a> App<'a> {
             .map(|item| ListItem::new(&item.content[..]))
             .collect();
 
-        let message = Paragraph::new("It's TUI time babyyyyy");
         let inbox_list =
             List::new(inbox_items).block(Block::default().borders(Borders::ALL).title("Inbox"));
-        frame.render_widget(message, frame.size());
         frame.render_widget(inbox_list, frame.size());
 
         let input_rect = centered_rect(frame.size(), 50, 3, Some(2));

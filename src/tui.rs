@@ -1,22 +1,28 @@
 use self::app::{App, Mode};
-use crate::model::Model;
+use crate::{model::Model, sync::Response};
 use anyhow::Result;
 use crossterm::{
-    event::{self, Event},
+    event::{self, poll, Event},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{prelude::CrosstermBackend, Terminal};
-use std::io::{self, Stdout};
+use std::{
+    io::{self, Stdout},
+    sync::mpsc,
+    time::Duration,
+};
 
 pub mod app;
 pub mod ui;
 
 /// # Errors
 /// Returns an error if something goes wrong during the TUI setup, execution, or teardown.
-pub fn run(model: &mut Model) -> Result<()> {
+pub fn run(model: &mut Model, receiver: &mpsc::Receiver<Response>) -> Result<()> {
+    let mut app = App::new(model);
+
     let mut terminal = setup_terminal()?;
-    run_main_loop(&mut terminal, model)?;
+    run_main_loop(&mut terminal, &mut app, receiver)?;
     restore_terminal(&mut terminal)?;
 
     Ok(())
@@ -45,22 +51,27 @@ fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result
 /// Returns an error if something goes wrong during the TUI execution.
 fn run_main_loop(
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-    model: &mut Model,
+    app: &mut App<'_>,
+    receiver: &mpsc::Receiver<Response>,
 ) -> Result<()> {
-    let mut app = App::new(model);
-
     loop {
         // render
         terminal.draw(|frame| {
             app.render(frame);
         })?;
 
-        // process input
-        if let Event::Key(key) = event::read()? {
-            app.handle_key(key);
-            if app.mode == Mode::Exiting {
-                return Ok(());
+        if poll(Duration::from_millis(100))? {
+            if let Event::Key(key) = event::read()? {
+                app.handle_key(key);
+                if app.mode == Mode::Exiting {
+                    return Ok(());
+                }
             }
-        }
+        } else {
+            // check if the receiver received anything
+            if let Ok(response) = receiver.try_recv() {
+                app.model.update(response);
+            }
+        } // process input
     }
 }

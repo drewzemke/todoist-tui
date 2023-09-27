@@ -1,4 +1,6 @@
 #![warn(clippy::all, clippy::pedantic, clippy::unwrap_used)]
+use std::sync::mpsc;
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
@@ -10,7 +12,7 @@ use tod::{
         file_manager::FileManager,
         model_manager::ModelManager,
     },
-    sync::client::Client,
+    sync::{client::Client, Request, ResourceType, Response},
     tui,
 };
 
@@ -93,12 +95,37 @@ async fn main() -> Result<()> {
     match args.command {
         None => {
             let mut model = model_manager.read_model()?;
-            tui::run(&mut model)?;
+
+            // kick off a full sync that sends its results to the tui app
+            let (sender, receiver) = mpsc::channel::<Response>();
+            if let Ok(ref client) = client {
+                let client = client.clone();
+                let commands = model.commands.clone();
+                tokio::spawn(async move {
+                    let request = Request {
+                        sync_token: "*".into(),
+                        resource_types: vec![ResourceType::All],
+                        commands,
+                    };
+
+                    // FIXME: Need a way (maybe another channel) to communicate to the UI
+                    // that the sync failed
+                    let response = client
+                        .make_request(&request)
+                        .await
+                        .expect("Error occurred during full sync.");
+                    sender
+                        .send(response)
+                        .expect("Error occurred while processing server response.");
+                });
+            }
+
+            tui::run(&mut model, &receiver)?;
 
             if !model.commands.is_empty() {
                 cli::sync(&mut model, &client?, true).await?;
-                model_manager.write_model(&model)?;
             }
+            model_manager.write_model(&model)?;
         }
 
         Some(command) => match command {
