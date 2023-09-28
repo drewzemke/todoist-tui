@@ -1,13 +1,15 @@
+use super::{
+    item_list::{ItemList, ItemListState},
+    ui::centered_rect,
+};
 use crate::model::Model;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::Backend,
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 use tui_input::{backend::crossterm::EventHandler, Input};
-
-use super::ui::centered_rect;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
@@ -21,14 +23,17 @@ pub struct App<'a> {
     pub mode: Mode,
     pub model: &'a mut Model,
     input: Input,
+    item_list_state: ItemListState,
 }
 
 impl<'a> App<'a> {
     pub fn new(model: &'a mut Model) -> Self {
+        let length = model.get_inbox_items().len();
         Self {
             mode: Mode::Chillin,
             model,
             input: Input::default(),
+            item_list_state: ItemListState::with_length(length),
         }
     }
 
@@ -42,6 +47,7 @@ impl<'a> App<'a> {
                 KeyCode::Char('q') => {
                     self.mode = Mode::Exiting;
                 }
+                KeyCode::Up | KeyCode::Down => self.item_list_state.handle_key(key),
                 _ => {}
             },
             Mode::AddingTodo => match key.code {
@@ -66,17 +72,12 @@ impl<'a> App<'a> {
     ///
     /// # Errors
     /// Returns an error if something goes wrong during the render process.
-    pub fn render<'b, B: Backend + 'b>(&self, frame: &mut Frame<'b, B>) {
-        let inbox_items: Vec<ListItem> = self
-            .model
-            .get_inbox_items()
-            .iter()
-            .map(|item| ListItem::new(&item.content[..]))
-            .collect();
-
-        let inbox_list =
-            List::new(inbox_items).block(Block::default().borders(Borders::ALL).title("Inbox"));
-        frame.render_widget(inbox_list, frame.size());
+    pub fn render<'b, B: Backend + 'b>(&mut self, frame: &mut Frame<'b, B>) {
+        let mut inbox_component = ItemList {
+            items: self.model.get_inbox_items(),
+            state: &mut self.item_list_state,
+        };
+        inbox_component.render(frame);
 
         let input_rect = centered_rect(frame.size(), 50, 3, Some(2));
 
