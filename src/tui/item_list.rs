@@ -23,6 +23,21 @@ impl ItemListState {
         }
     }
 
+    pub fn set_length(&mut self, length: usize) {
+        self.length = length;
+        let new_index = match self.state.selected() {
+            Some(index) => {
+                if index >= self.length - 1 {
+                    None
+                } else {
+                    Some(index)
+                }
+            }
+            None => None,
+        };
+        self.state.select(new_index);
+    }
+
     fn select_next(&mut self) {
         let next_index = match self.state.selected() {
             Some(index) => {

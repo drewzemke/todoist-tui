@@ -72,6 +72,7 @@ fn run_main_loop(
             // check if the receiver received anything
             if let Ok(response) = receiver.try_recv() {
                 app.model.update(response);
+                app.update_state();
             }
         } // process input
     }

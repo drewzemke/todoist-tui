@@ -37,6 +37,12 @@ impl<'a> App<'a> {
         }
     }
 
+    /// Updates the inner state of model after the model changes.
+    pub fn update_state(&mut self) {
+        self.item_list_state
+            .set_length(self.model.get_inbox_items().len());
+    }
+
     /// Manages how the whole app reacts to an individual user keypress.
     pub fn handle_key(&mut self, key: event::KeyEvent) {
         match self.mode {
@@ -57,6 +63,7 @@ impl<'a> App<'a> {
                 }
                 KeyCode::Enter => {
                     self.model.add_item(self.input.value());
+                    self.update_state();
                     self.mode = Mode::Chillin;
                     self.input.reset();
                 }
