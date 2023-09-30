@@ -27,8 +27,8 @@ impl ItemListState {
         self.length = length;
         let new_index = match self.state.selected() {
             Some(index) => {
-                if index >= self.length - 1 {
-                    None
+                if index >= self.length {
+                    Some(self.length - 1)
                 } else {
                     Some(index)
                 }
@@ -72,6 +72,11 @@ impl ItemListState {
             KeyCode::Down => self.select_next(),
             _ => {}
         }
+    }
+
+    #[must_use]
+    pub fn selected_index(&self) -> Option<usize> {
+        self.state.selected()
     }
 }
 

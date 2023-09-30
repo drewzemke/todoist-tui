@@ -54,6 +54,13 @@ impl<'a> App<'a> {
                     self.mode = Mode::Exiting;
                 }
                 KeyCode::Up | KeyCode::Down => self.item_list_state.handle_key(key),
+                KeyCode::Char(' ') => {
+                    if let Some(selected_index) = self.item_list_state.selected_index() {
+                        let item_id = self.model.get_inbox_items()[selected_index].id.clone();
+                        self.model.complete_item(&item_id).unwrap();
+                        self.update_state();
+                    }
+                }
                 _ => {}
             },
             Mode::AddingTodo => match key.code {
