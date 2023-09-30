@@ -28,7 +28,7 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
     pub fn new(model: &'a mut Model) -> Self {
-        let length = model.get_inbox_items().len();
+        let length = model.get_inbox_items(false).len();
         Self {
             mode: Mode::Chillin,
             model,
@@ -40,7 +40,7 @@ impl<'a> App<'a> {
     /// Updates the inner state of model after the model changes.
     pub fn update_state(&mut self) {
         self.item_list_state
-            .set_length(self.model.get_inbox_items().len());
+            .set_length(self.model.get_inbox_items(false).len());
     }
 
     /// Manages how the whole app reacts to an individual user keypress.
@@ -56,8 +56,8 @@ impl<'a> App<'a> {
                 KeyCode::Up | KeyCode::Down => self.item_list_state.handle_key(key),
                 KeyCode::Char(' ') => {
                     if let Some(selected_index) = self.item_list_state.selected_index() {
-                        let item_id = self.model.get_inbox_items()[selected_index].id.clone();
-                        self.model.complete_item(&item_id).unwrap();
+                        let item = self.model.get_inbox_items(false)[selected_index];
+                        self.model.mark_item(&item.id.clone(), !item.checked);
                         self.update_state();
                     }
                 }
@@ -88,7 +88,7 @@ impl<'a> App<'a> {
     /// Returns an error if something goes wrong during the render process.
     pub fn render<'b, B: Backend + 'b>(&mut self, frame: &mut Frame<'b, B>) {
         let mut inbox_component = ItemList {
-            items: self.model.get_inbox_items(),
+            items: self.model.get_inbox_items(false),
             state: &mut self.item_list_state,
         };
         inbox_component.render(frame);

@@ -23,7 +23,7 @@ impl Item {
         }
     }
 
-    pub fn mark_complete(&mut self) {
-        self.checked = true;
+    pub fn mark_complete(&mut self, complete: bool) {
+        self.checked = complete;
     }
 }

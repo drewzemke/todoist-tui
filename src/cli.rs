@@ -1,5 +1,5 @@
 use crate::{
-    model::{item::Item, Model},
+    model::Model,
     sync::{client::Client, Request, ResourceType},
 };
 use anyhow::{anyhow, Result};
@@ -8,25 +8,22 @@ use std::io::{self, Write};
 /// # Errors
 ///
 /// Returns an error if `number` does not correspond to a valid item
-pub fn complete_item(number: usize, model: &mut Model) -> Result<&Item> {
+pub fn complete_item(number: usize, model: &mut Model) -> Result<()> {
     // look at the current inbox and determine which task is targeted
-    let inbox_items = model.get_inbox_items();
+    let inbox_items = model.get_inbox_items(true);
     let num_items = inbox_items.len();
 
-    let error_msg = || {
+    let item = inbox_items.get(number - 1).ok_or_else(|| {
         anyhow!(
             "'{number}' is outside of the valid range. Pass a number between 1 and {num_items}.",
         )
-    };
+    })?;
+    let content = item.content.clone();
 
-    let item = inbox_items.get(number - 1).ok_or_else(error_msg)?;
+    model.mark_item(&item.id.clone(), true);
+    println!("'{content}' marked complete.");
 
-    // update the item's status
-    let completed_item = model
-        .complete_item(&item.id.clone())
-        .map_err(|_| error_msg())?;
-
-    Ok(completed_item)
+    Ok(())
 }
 
 // FIXME: this probably isn't the right place for this function

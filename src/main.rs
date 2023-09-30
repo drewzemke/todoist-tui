@@ -141,8 +141,7 @@ async fn main() -> Result<()> {
 
             CliCommand::CompleteTodo { number, no_sync } => {
                 let mut model = model_manager.read_model()?;
-                let removed_item = cli::complete_item(number, &mut model)?;
-                println!("'{}' marked complete.", removed_item.content);
+                cli::complete_item(number, &mut model)?;
                 if !no_sync {
                     cli::sync(&mut model, &client?, true).await?;
                 }
@@ -151,7 +150,7 @@ async fn main() -> Result<()> {
 
             CliCommand::ListInbox => {
                 let model = model_manager.read_model()?;
-                let inbox_items = model.get_inbox_items();
+                let inbox_items = model.get_inbox_items(true);
 
                 println!("Inbox: ");
                 for (index, Item { content, .. }) in inbox_items.iter().enumerate() {

@@ -34,7 +34,7 @@ pub mod tui_tests {
             .expect_not_visible("New Todo")?
             .expect_visible("new todo text")?;
 
-        assert_eq!(model.get_inbox_items().len(), 1);
+        assert_eq!(model.get_inbox_items(true).len(), 1);
 
         Ok(())
     }
@@ -53,10 +53,10 @@ pub mod tui_tests {
             .type_key(KeyCode::Down)
             // space to complete that item
             .type_key(KeyCode::Char(' '))
-            .expect_not_visible("Todo 1")?
-            .expect_visible("Todo 2")?;
+            .expect_visible("✓ Todo 1")?
+            .expect_visible("- Todo 2")?;
 
-        assert_eq!(model.get_inbox_items().len(), 1);
+        assert_eq!(model.get_inbox_items(true).len(), 1);
 
         Ok(())
     }

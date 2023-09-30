@@ -91,10 +91,16 @@ impl<'a> ItemList<'a> {
         let list_items: Vec<ListItem> = self
             .items
             .iter()
-            .map(|item| ListItem::new(&item.content[..]))
+            .map(|item| {
+                let check = if item.checked { "✓" } else { "-" };
+                let mut list_item = ListItem::new(format!("{check} {}", &item.content[..]));
+                if item.checked {
+                    list_item = list_item.style(Style::default().fg(Color::Green));
+                }
+                list_item
+            })
             .collect();
         let list = List::new(list_items)
-            .highlight_symbol("> ")
             .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
             .block(Block::default().borders(Borders::ALL).title("Inbox"));
 

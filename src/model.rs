@@ -4,7 +4,6 @@ use self::{
     user::User,
 };
 use crate::sync::{Response, Status};
-use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -36,37 +35,51 @@ impl Model {
         self.items.push(new_item);
     }
 
-    /// # Errors
+    /// Marks an item as complete (or uncomplete) and creates (removes) a corresponding command
     ///
-    /// Returns an error if an item with the given id is not found.
-    pub fn complete_item(&mut self, item_id: &str) -> Result<&Item> {
-        let item = self
-            .items
-            .iter_mut()
-            .find(|item| item.id == item_id)
-            .ok_or(anyhow!("Could not find item to complete"))?;
-        item.mark_complete();
+    /// # Note
+    /// This no-ops if an item with the given id does not exist, so check before calling.
+    pub fn mark_item(&mut self, item_id: &str, complete: bool) {
+        let item = self.items.iter_mut().find(|item| item.id == item_id);
 
-        self.commands.push(Command {
-            request_type: "item_complete".to_owned(),
-            temp_id: None,
-            uuid: Uuid::new_v4(),
-            args: Args::CompleteItemCommandArgs(CompleteItemArgs {
-                id: item.id.clone(),
-            }),
-        });
+        // If nothing was found, just return
+        let Some(item) = item else { return };
 
-        Ok(item)
+        item.mark_complete(complete);
+
+        if complete {
+            // Add a new command
+            self.commands.push(Command {
+                request_type: "item_complete".to_owned(),
+                temp_id: None,
+                uuid: Uuid::new_v4(),
+                args: Args::CompleteItemCommandArgs(CompleteItemArgs {
+                    id: item.id.clone(),
+                }),
+            });
+        } else {
+            // If there was a pending command to mark this item completed, remove it
+            let cmd_index = self.commands.iter().position(|command| {
+                if let Args::CompleteItemCommandArgs(CompleteItemArgs { ref id }) = command.args {
+                    id == &item.id
+                } else {
+                    false
+                }
+            });
+            if let Some(cmd_index) = cmd_index {
+                self.commands.remove(cmd_index);
+            }
+        }
     }
 
     // TODO: test
     #[must_use]
-    pub fn get_inbox_items(&self) -> Vec<&Item> {
+    pub fn get_inbox_items(&self, filter_complete: bool) -> Vec<&Item> {
         // get the items with the correct id
         let inbox_id = &self.user.inbox_project_id;
         self.items
             .iter()
-            .filter(|item| item.project_id == *inbox_id && !item.checked)
+            .filter(|item| item.project_id == *inbox_id && (!filter_complete || !item.checked))
             .collect()
     }
 
@@ -146,9 +159,7 @@ mod tests {
         let item = Item::new("Item!", "INBOX_ID");
         let item_id = item.id.clone();
         model.items.push(item);
-        model
-            .complete_item(&item_id)
-            .expect("Test: could not complete item");
+        model.mark_item(&item_id, true);
 
         assert!(model.items[0].checked);
         assert_eq!(model.commands[0].request_type, "item_complete");
