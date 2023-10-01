@@ -5,8 +5,8 @@ use super::{
 use crate::model::Model;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
-    prelude::Backend,
-    widgets::{Block, Borders, Paragraph},
+    prelude::{Backend, Constraint, Direction, Layout},
+    widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
 use tui_input::{backend::crossterm::EventHandler, Input};
@@ -87,15 +87,29 @@ impl<'a> App<'a> {
     /// # Errors
     /// Returns an error if something goes wrong during the render process.
     pub fn render<'b, B: Backend + 'b>(&mut self, frame: &mut Frame<'b, B>) {
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(frame.size());
+
+        let project_list_items: Vec<ListItem> = self
+            .model
+            .projects
+            .iter()
+            .map(|project| ListItem::new(&project.name[..]))
+            .collect();
+        let project_list = List::new(project_list_items)
+            .block(Block::default().borders(Borders::ALL).title("Projects"));
+        frame.render_widget(project_list, chunks[0]);
+
         let mut inbox_component = ItemList {
             items: self.model.get_inbox_items(false),
             state: &mut self.item_list_state,
         };
-        inbox_component.render(frame);
-
-        let input_rect = centered_rect(frame.size(), 50, 3, Some(2));
+        inbox_component.render(frame, chunks[1]);
 
         if self.mode == Mode::AddingTodo {
+            let input_rect = centered_rect(frame.size(), 50, 3, Some(2));
             let input_scroll = self.input.visual_scroll(input_rect.width as usize - 2);
             #[allow(clippy::cast_possible_truncation)]
             let input = Paragraph::new(self.input.value())

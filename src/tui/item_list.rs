@@ -1,6 +1,6 @@
 use crossterm::event::{self, KeyCode};
 use ratatui::{
-    prelude::Backend,
+    prelude::{Backend, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, List, ListItem, ListState},
     Frame,
@@ -87,7 +87,7 @@ pub struct ItemList<'a> {
 
 impl<'a> ItemList<'a> {
     // TODO: alternative to this function: implement `Widget` for ItemList
-    pub fn render<'b, B: Backend + 'b>(&mut self, frame: &mut Frame<'b, B>) {
+    pub fn render<'b, B: Backend + 'b>(&mut self, frame: &mut Frame<'b, B>, area: Rect) {
         let list_items: Vec<ListItem> = self
             .items
             .iter()
@@ -104,6 +104,6 @@ impl<'a> ItemList<'a> {
             .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
             .block(Block::default().borders(Borders::ALL).title("Inbox"));
 
-        frame.render_stateful_widget(list, frame.size(), &mut self.state.state);
+        frame.render_stateful_widget(list, area, &mut self.state.state);
     }
 }

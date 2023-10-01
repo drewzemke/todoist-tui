@@ -6,7 +6,10 @@ pub mod tui_tests {
     use crate::test_utils::TuiTester;
     use anyhow::Result;
     use crossterm::event::KeyCode;
-    use tod::{model::Model, tui::app::App};
+    use tod::{
+        model::{project::Project, Model},
+        tui::app::App,
+    };
 
     #[test]
     fn open_and_close_app() -> Result<()> {
@@ -26,7 +29,7 @@ pub mod tui_tests {
         let mut model = Model::default();
         let app = App::new(&mut model);
 
-        TuiTester::new(app, 30, 10)?
+        TuiTester::new(app, 40, 10)?
             .type_string("a")
             .expect_visible("New Todo")?
             .type_string("new todo text")
@@ -46,7 +49,7 @@ pub mod tui_tests {
         model.add_item("Todo 2");
         let app = App::new(&mut model);
 
-        TuiTester::new(app, 30, 10)?
+        TuiTester::new(app, 40, 10)?
             .expect_visible("Todo 1")?
             .expect_visible("Todo 2")?
             // down arrow to select the first todo
@@ -57,6 +60,17 @@ pub mod tui_tests {
             .expect_visible("- Todo 2")?;
 
         assert_eq!(model.get_inbox_items(true).len(), 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn render_projects() -> Result<()> {
+        let mut model = Model::default();
+        model.projects.push(Project::new("Project Name!"));
+        let app = App::new(&mut model);
+
+        TuiTester::new(app, 40, 10)?.expect_visible("Project Name")?;
 
         Ok(())
     }
