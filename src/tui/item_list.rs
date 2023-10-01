@@ -9,12 +9,12 @@ use ratatui::{
 use crate::model::item::Item;
 
 #[derive(Default)]
-pub struct ItemListState {
+pub struct State {
     state: ListState,
     length: usize,
 }
 
-impl ItemListState {
+impl State {
     #[must_use]
     pub fn with_length(length: usize) -> Self {
         Self {
@@ -82,7 +82,7 @@ impl ItemListState {
 
 pub struct ItemList<'a> {
     pub items: Vec<&'a Item>,
-    pub state: &'a mut ItemListState,
+    pub state: &'a mut State,
 }
 
 impl<'a> ItemList<'a> {

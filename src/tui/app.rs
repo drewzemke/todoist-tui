@@ -1,5 +1,5 @@
 use super::{
-    item_list::{ItemList, ItemListState},
+    item_list::{ItemList, State as ItemListState},
     ui::centered_rect,
 };
 use crate::model::Model;
