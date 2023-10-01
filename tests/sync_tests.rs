@@ -13,7 +13,7 @@ pub mod sync_tests {
             user::User,
             Model,
         },
-        sync::{Request, ResourceType, Response, Status},
+        sync::{Request, Response, Status},
     };
     use uuid::Uuid;
 
@@ -35,13 +35,7 @@ pub mod sync_tests {
             .await
             .mock_response(
                 "sync",
-                |request: Request| {
-                    request.sync_token == "*"
-                        && request
-                            .resource_types
-                            .get(0)
-                            .is_some_and(|s| *s == ResourceType::All)
-                },
+                |request: Request| request.sync_token == "*",
                 Response {
                     full_sync: true,
                     items: vec![mock_item_1, mock_item_2],
@@ -113,13 +107,7 @@ pub mod sync_tests {
             .await
             .mock_response(
                 "sync",
-                |request: Request| {
-                    request.sync_token == "*"
-                        && request
-                            .resource_types
-                            .get(0)
-                            .is_some_and(|s| *s == ResourceType::All)
-                },
+                |request: Request| request.sync_token == "*",
                 Response {
                     full_sync: true,
                     items: vec![
@@ -207,13 +195,7 @@ pub mod sync_tests {
             .await
             .mock_response(
                 "sync",
-                |request: Request| {
-                    request.sync_token == "MOCK_SYNC_TOKEN"
-                        && request
-                            .resource_types
-                            .get(0)
-                            .is_some_and(|s| *s == ResourceType::All)
-                },
+                |request: Request| request.sync_token == "MOCK_SYNC_TOKEN",
                 Response {
                     full_sync: false,
                     items: vec![],

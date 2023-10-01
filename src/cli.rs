@@ -39,7 +39,7 @@ pub async fn sync(model: &mut Model, client: &Client, incremental: bool) -> Resu
 
     let request = Request {
         sync_token,
-        resource_types: vec![ResourceType::All],
+        resource_types: ResourceType::all(),
         commands: model.commands.clone(),
     };
 

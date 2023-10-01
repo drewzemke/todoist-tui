@@ -47,6 +47,18 @@ pub struct StatusError {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub enum ResourceType {
-    #[serde(rename = "all")]
-    All,
+    #[serde(rename = "items")]
+    Items,
+    #[serde(rename = "projects")]
+    Projects,
+    #[serde(rename = "user")]
+    User,
+}
+
+impl ResourceType {
+    /// Returns all of the resource types that should be requested in a full sync
+    #[must_use]
+    pub fn all() -> Vec<Self> {
+        vec![Self::Items, Self::Projects, Self::User]
+    }
 }

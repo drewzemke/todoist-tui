@@ -104,7 +104,7 @@ async fn main() -> Result<()> {
                 tokio::spawn(async move {
                     let request = Request {
                         sync_token: "*".into(),
-                        resource_types: vec![ResourceType::All],
+                        resource_types: ResourceType::all(),
                         commands,
                     };
 
