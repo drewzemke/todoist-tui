@@ -1,6 +1,7 @@
 use self::{
     command::{AddItemArgs, Args, Command, CompleteItemArgs},
     item::Item,
+    project::Project,
     user::User,
 };
 use crate::sync::{Response, Status};
@@ -9,12 +10,14 @@ use uuid::Uuid;
 
 pub mod command;
 pub mod item;
+pub mod project;
 pub mod user;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Model {
     pub sync_token: String,
     pub items: Vec<Item>,
+    pub projects: Vec<Project>,
     pub user: User,
     pub commands: Vec<Command>,
 }
@@ -91,6 +94,11 @@ impl Model {
             self.user = user;
         }
 
+        // replace the list of projects with the list from the response.
+        // NOTE: this will need to be changed once we introduce commands that
+        // modify projects
+        self.projects = response.projects;
+
         if response.full_sync {
             // if this was a full sync, just replace the set of items
             self.items = response.items;
@@ -125,6 +133,7 @@ impl Default for Model {
         Model {
             sync_token: "*".to_string(),
             items: vec![],
+            projects: vec![],
             user: User::default(),
             commands: vec![],
         }

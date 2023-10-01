@@ -25,7 +25,7 @@ pub mod item_tests {
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                 },
                 items: vec![mock_item_1, mock_item_2],
-                commands: vec![],
+                ..Default::default()
             })?,
         )?;
         let mock_data_dir = mock_fs.path();
@@ -64,7 +64,7 @@ pub mod item_tests {
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                 },
                 items: vec![mock_item_1, mock_item_2],
-                commands: vec![],
+                ..Default::default()
             })?,
         )?;
         let mock_data_dir = mock_fs.path();
@@ -112,7 +112,7 @@ pub mod item_tests {
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
                 },
                 items: vec![mock_item_1, mock_item_2],
-                commands: vec![],
+                ..Default::default()
             })?,
         )?;
         let mock_data_dir = mock_fs.path();

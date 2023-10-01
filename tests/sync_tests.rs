@@ -10,6 +10,7 @@ pub mod sync_tests {
         model::{
             command::{self, AddItemArgs, Args},
             item::Item,
+            project::Project,
             user::User,
             Model,
         },
@@ -27,6 +28,7 @@ pub mod sync_tests {
         let mock_data_dir = mock_fs.path();
 
         // mock data
+        let mock_project = Project::new("Project!");
         let mock_item_1 = Item::new("Todo One!", "MOCK_INBOX_PROJECT_ID");
         let mock_item_2 = Item::new("Todo Two!", "MOCK_INBOX_PROJECT_ID");
 
@@ -39,6 +41,7 @@ pub mod sync_tests {
                 Response {
                     full_sync: true,
                     items: vec![mock_item_1, mock_item_2],
+                    projects: vec![mock_project],
                     sync_status: None,
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::new(),
@@ -98,6 +101,7 @@ pub mod sync_tests {
                             content: "Todo Two!".to_string(),
                         }),
                     }],
+                    ..Default::default()
                 })?,
             )?;
         let mock_data_dir = mock_fs.path();
@@ -115,6 +119,7 @@ pub mod sync_tests {
                         mock_item_2_updated.clone(),
                         mock_item_3.clone(),
                     ],
+                    projects: vec![],
                     sync_status: Some(HashMap::from([(command_uuid, Status::Ok)])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(
@@ -186,6 +191,7 @@ pub mod sync_tests {
                             content: "Todo Two!".to_string(),
                         }),
                     }],
+                    ..Default::default()
                 })?,
             )?;
         let mock_data_dir = mock_fs.path();
@@ -199,6 +205,7 @@ pub mod sync_tests {
                 Response {
                     full_sync: false,
                     items: vec![],
+                    projects: vec![],
                     sync_status: Some(HashMap::from([(command_uuid, Status::Ok)])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(

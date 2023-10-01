@@ -2,13 +2,16 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::model::{command::Command, item::Item, user::User};
+use crate::model::{command::Command, item::Item, project::Project, user::User};
 
 pub mod client;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Response {
     pub sync_token: String,
+
+    #[serde(default)]
+    pub projects: Vec<Project>,
 
     #[serde(default)]
     pub items: Vec<Item>,
