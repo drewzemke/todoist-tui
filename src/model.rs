@@ -86,6 +86,14 @@ impl Model {
             .collect()
     }
 
+    #[must_use]
+    pub fn get_items_in_project(&self, project_id: &str) -> Vec<&Item> {
+        self.items
+            .iter()
+            .filter(|item| item.project_id == *project_id)
+            .collect()
+    }
+
     // TODO: test
     #[must_use]
     pub fn projects(&self) -> Vec<&Project> {
@@ -136,11 +144,16 @@ impl Model {
 
 impl Default for Model {
     fn default() -> Self {
+        let inbox = Project::new("Inbox");
+        let user = User {
+            inbox_project_id: inbox.id.clone(),
+            ..Default::default()
+        };
         Model {
             sync_token: "*".to_string(),
             items: vec![],
-            projects: vec![],
-            user: User::default(),
+            projects: vec![inbox],
+            user,
             commands: vec![],
         }
     }

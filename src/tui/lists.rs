@@ -87,7 +87,7 @@ impl State {
 }
 
 #[must_use]
-pub fn item_list<'a>(items: &'a [&'a Item]) -> List {
+pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str) -> List<'a> {
     let list_items: Vec<ListItem> = items
         .iter()
         .map(|item| {
@@ -101,7 +101,7 @@ pub fn item_list<'a>(items: &'a [&'a Item]) -> List {
         .collect();
     let list = List::new(list_items)
         .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
-        .block(Block::default().borders(Borders::ALL).title("Inbox"));
+        .block(Block::default().borders(Borders::ALL).title(project_name));
     list
 }
 

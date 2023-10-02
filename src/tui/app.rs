@@ -118,9 +118,15 @@ impl<'a> App<'a> {
         frame.render_stateful_widget(project_list, chunks[0], &mut self.project_list_state.state);
 
         // render the item list
-        let items = self.model.get_inbox_items(false);
-        let item_list = item_list(&items);
-        frame.render_stateful_widget(item_list, chunks[1], &mut self.item_list_state.state);
+        let selected_project = self
+            .project_list_state
+            .selected_index()
+            .map(|index| projects[index]);
+        if let Some(selected_project) = selected_project {
+            let items = self.model.get_items_in_project(&selected_project.id);
+            let item_list = item_list(&items, &selected_project.name);
+            frame.render_stateful_widget(item_list, chunks[1], &mut self.item_list_state.state);
+        }
 
         if self.mode == Mode::AddingItem {
             let input_rect = centered_rect(frame.size(), 50, 3, Some(2));

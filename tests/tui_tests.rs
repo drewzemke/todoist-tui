@@ -7,7 +7,7 @@ pub mod tui_tests {
     use anyhow::Result;
     use crossterm::event::KeyCode;
     use tod::{
-        model::{project::Project, Model},
+        model::{item::Item, project::Project, Model},
         tui::app::App,
     };
 
@@ -65,12 +65,29 @@ pub mod tui_tests {
     }
 
     #[test]
-    fn render_projects() -> Result<()> {
+    fn view_items_in_different_projects() -> Result<()> {
         let mut model = Model::default();
-        model.projects.push(Project::new("Project Name!"));
+        let project1 = Project::new("Project 1");
+        let project2 = Project::new("Project 2");
+        let item1 = Item::new("Item 1", &project1.id);
+        let item2 = Item::new("Item 2", &project2.id);
+        model.projects.push(project1);
+        model.projects.push(project2);
+        model.items.push(item1);
+        model.items.push(item2);
         let app = App::new(&mut model);
 
-        TuiTester::new(app, 40, 10)?.expect_visible("Project Name")?;
+        TuiTester::new(app, 40, 10)?
+            .expect_visible("Project 1")?
+            .expect_visible("Project 2")?
+            // tab to move focus to the projects panel
+            .type_key(KeyCode::Tab)
+            // down to select the first project
+            .type_key(KeyCode::Down)
+            .expect_visible("Item 1")?
+            // down to select the second project
+            .type_key(KeyCode::Down)
+            .expect_visible("Item 2")?;
 
         Ok(())
     }
