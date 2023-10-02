@@ -1,9 +1,7 @@
 use crossterm::event::{self, KeyCode};
 use ratatui::{
-    prelude::{Backend, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, List, ListItem, ListState},
-    Frame,
 };
 
 use crate::model::{item::Item, project::Project};
@@ -11,10 +9,18 @@ use crate::model::{item::Item, project::Project};
 #[derive(Default)]
 pub struct State {
     pub state: ListState,
-    length: usize,
+    pub length: usize,
 }
 
 impl State {
+    #[must_use]
+    pub fn new(length: usize, selected: usize) -> Self {
+        Self {
+            state: ListState::with_selected(ListState::default(), Some(selected)),
+            length,
+        }
+    }
+
     #[must_use]
     pub fn with_length(length: usize) -> Self {
         Self {
@@ -96,5 +102,17 @@ pub fn item_list<'a>(items: &'a [&'a Item]) -> List {
     let list = List::new(list_items)
         .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
         .block(Block::default().borders(Borders::ALL).title("Inbox"));
+    list
+}
+
+#[must_use]
+pub fn project_list<'a>(projects: &'a [&'a Project]) -> List {
+    let list_items: Vec<ListItem> = projects
+        .iter()
+        .map(|project| ListItem::new(&project.name[..]))
+        .collect();
+    let list = List::new(list_items)
+        .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
+        .block(Block::default().borders(Borders::ALL).title("Projects"));
     list
 }

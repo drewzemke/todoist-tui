@@ -87,6 +87,12 @@ impl Model {
     }
 
     // TODO: test
+    #[must_use]
+    pub fn projects(&self) -> Vec<&Project> {
+        self.projects.iter().collect()
+    }
+
+    // TODO: test
     pub fn update(&mut self, response: Response) {
         self.sync_token = response.sync_token;
 

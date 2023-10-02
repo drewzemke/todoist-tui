@@ -1,21 +1,21 @@
 use super::{
-    lists::{item_list, State as ItemListState},
+    lists::{item_list, project_list, State as ListState},
     ui::centered_rect,
 };
 use crate::model::Model;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::{Backend, Constraint, Direction, Layout},
-    style::{Color, Style},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
 use tui_input::{backend::crossterm::EventHandler, Input};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
-    AddingTodo,
-    Chillin,
+    AddingItem,
+    SelectingItems,
+    SelectingProjects,
     Exiting,
 }
 
@@ -24,17 +24,20 @@ pub struct App<'a> {
     pub mode: Mode,
     pub model: &'a mut Model,
     input: Input,
-    item_list_state: ItemListState,
+    item_list_state: ListState,
+    project_list_state: ListState,
 }
 
 impl<'a> App<'a> {
     pub fn new(model: &'a mut Model) -> Self {
-        let length = model.get_inbox_items(false).len();
+        let num_items = model.get_inbox_items(false).len();
+        let num_projects = model.projects.len();
         Self {
-            mode: Mode::Chillin,
+            mode: Mode::SelectingItems,
             model,
             input: Input::default(),
-            item_list_state: ItemListState::with_length(length),
+            item_list_state: ListState::with_length(num_items),
+            project_list_state: ListState::new(num_projects, 0),
         }
     }
 
@@ -47,14 +50,17 @@ impl<'a> App<'a> {
     /// Manages how the whole app reacts to an individual user keypress.
     pub fn handle_key(&mut self, key: event::KeyEvent) {
         match self.mode {
-            Mode::Chillin => match key.code {
+            Mode::SelectingItems => match key.code {
                 KeyCode::Char('a') => {
-                    self.mode = Mode::AddingTodo;
+                    self.mode = Mode::AddingItem;
                 }
                 KeyCode::Char('q') => {
                     self.mode = Mode::Exiting;
                 }
                 KeyCode::Up | KeyCode::Down => self.item_list_state.handle_key(key),
+                KeyCode::Tab => {
+                    self.mode = Mode::SelectingProjects;
+                }
                 KeyCode::Char(' ') => {
                     if let Some(selected_index) = self.item_list_state.selected_index() {
                         let item = self.model.get_inbox_items(false)[selected_index];
@@ -64,15 +70,28 @@ impl<'a> App<'a> {
                 }
                 _ => {}
             },
-            Mode::AddingTodo => match key.code {
+            Mode::SelectingProjects => match key.code {
+                KeyCode::Char('a') => {
+                    self.mode = Mode::AddingItem;
+                }
+                KeyCode::Char('q') => {
+                    self.mode = Mode::Exiting;
+                }
+                KeyCode::Up | KeyCode::Down => self.project_list_state.handle_key(key),
+                KeyCode::Tab => {
+                    self.mode = Mode::SelectingItems;
+                }
+                _ => {}
+            },
+            Mode::AddingItem => match key.code {
                 KeyCode::Esc => {
-                    self.mode = Mode::Chillin;
+                    self.mode = Mode::SelectingItems;
                     self.input.reset();
                 }
                 KeyCode::Enter => {
                     self.model.add_item(self.input.value());
                     self.update_state();
-                    self.mode = Mode::Chillin;
+                    self.mode = Mode::SelectingItems;
                     self.input.reset();
                 }
                 _ => {
@@ -93,22 +112,17 @@ impl<'a> App<'a> {
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .split(frame.size());
 
-        let project_list_items: Vec<ListItem> = self
-            .model
-            .projects
-            .iter()
-            .map(|project| ListItem::new(&project.name[..]))
-            .collect();
-        let project_list = List::new(project_list_items)
-            .block(Block::default().borders(Borders::ALL).title("Projects"));
-        frame.render_widget(project_list, chunks[0]);
+        // render the project list
+        let projects = self.model.projects();
+        let project_list = project_list(&projects);
+        frame.render_stateful_widget(project_list, chunks[0], &mut self.project_list_state.state);
 
         // render the item list
         let items = self.model.get_inbox_items(false);
-        let list = item_list(&items);
-        frame.render_stateful_widget(list, chunks[1], &mut self.item_list_state.state);
+        let item_list = item_list(&items);
+        frame.render_stateful_widget(item_list, chunks[1], &mut self.item_list_state.state);
 
-        if self.mode == Mode::AddingTodo {
+        if self.mode == Mode::AddingItem {
             let input_rect = centered_rect(frame.size(), 50, 3, Some(2));
             let input_scroll = self.input.visual_scroll(input_rect.width as usize - 2);
             #[allow(clippy::cast_possible_truncation)]
