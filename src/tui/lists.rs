@@ -6,11 +6,11 @@ use ratatui::{
     Frame,
 };
 
-use crate::model::item::Item;
+use crate::model::{item::Item, project::Project};
 
 #[derive(Default)]
 pub struct State {
-    state: ListState,
+    pub state: ListState,
     length: usize,
 }
 
@@ -80,30 +80,21 @@ impl State {
     }
 }
 
-pub struct ItemList<'a> {
-    pub items: Vec<&'a Item>,
-    pub state: &'a mut State,
-}
-
-impl<'a> ItemList<'a> {
-    // TODO: alternative to this function: implement `Widget` for ItemList
-    pub fn render<'b, B: Backend + 'b>(&mut self, frame: &mut Frame<'b, B>, area: Rect) {
-        let list_items: Vec<ListItem> = self
-            .items
-            .iter()
-            .map(|item| {
-                let check = if item.checked { "✓" } else { "-" };
-                let mut list_item = ListItem::new(format!("{check} {}", &item.content[..]));
-                if item.checked {
-                    list_item = list_item.style(Style::default().fg(Color::Green));
-                }
-                list_item
-            })
-            .collect();
-        let list = List::new(list_items)
-            .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
-            .block(Block::default().borders(Borders::ALL).title("Inbox"));
-
-        frame.render_stateful_widget(list, area, &mut self.state.state);
-    }
+#[must_use]
+pub fn item_list<'a>(items: &'a [&'a Item]) -> List {
+    let list_items: Vec<ListItem> = items
+        .iter()
+        .map(|item| {
+            let check = if item.checked { "✓" } else { "-" };
+            let mut list_item = ListItem::new(format!("{check} {}", &item.content[..]));
+            if item.checked {
+                list_item = list_item.style(Style::default().fg(Color::Green));
+            }
+            list_item
+        })
+        .collect();
+    let list = List::new(list_items)
+        .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
+        .block(Block::default().borders(Borders::ALL).title("Inbox"));
+    list
 }

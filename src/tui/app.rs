@@ -1,11 +1,12 @@
 use super::{
-    item_list::{ItemList, State as ItemListState},
+    lists::{item_list, State as ItemListState},
     ui::centered_rect,
 };
 use crate::model::Model;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::{Backend, Constraint, Direction, Layout},
+    style::{Color, Style},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
@@ -102,11 +103,10 @@ impl<'a> App<'a> {
             .block(Block::default().borders(Borders::ALL).title("Projects"));
         frame.render_widget(project_list, chunks[0]);
 
-        let mut inbox_component = ItemList {
-            items: self.model.get_inbox_items(false),
-            state: &mut self.item_list_state,
-        };
-        inbox_component.render(frame, chunks[1]);
+        // render the item list
+        let items = self.model.get_inbox_items(false);
+        let list = item_list(&items);
+        frame.render_stateful_widget(list, chunks[1], &mut self.item_list_state.state);
 
         if self.mode == Mode::AddingTodo {
             let input_rect = centered_rect(frame.size(), 50, 3, Some(2));

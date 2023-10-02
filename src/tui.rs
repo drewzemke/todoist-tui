@@ -14,7 +14,7 @@ use std::{
 };
 
 pub mod app;
-pub mod item_list;
+pub mod lists;
 pub mod ui;
 
 /// # Errors
