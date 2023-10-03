@@ -2,7 +2,7 @@ use super::{
     lists::{item_list, project_list, State as ListState},
     ui::centered_rect,
 };
-use crate::model::Model;
+use crate::model::{item::Item, Model};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::{Backend, Constraint, Direction, Layout},
@@ -43,8 +43,17 @@ impl<'a> App<'a> {
 
     /// Updates the inner state of model after the model changes.
     pub fn update_state(&mut self) {
-        self.item_list_state
-            .set_length(self.model.get_inbox_items(false).len());
+        let num_items = self.items_in_selected_project().len();
+        self.item_list_state = ListState::with_length(num_items);
+    }
+
+    fn items_in_selected_project(&self) -> Vec<&Item> {
+        let projects = self.model.projects();
+        self.project_list_state
+            .selected_index()
+            .map(|index| projects[index])
+            .map(|project| self.model.get_items_in_project(&project.id))
+            .unwrap_or_default()
     }
 
     /// Manages how the whole app reacts to an individual user keypress.
@@ -63,7 +72,8 @@ impl<'a> App<'a> {
                 }
                 KeyCode::Char(' ') => {
                     if let Some(selected_index) = self.item_list_state.selected_index() {
-                        let item = self.model.get_inbox_items(false)[selected_index];
+                        let items = self.items_in_selected_project();
+                        let item = items[selected_index];
                         self.model.mark_item(&item.id.clone(), !item.checked);
                         self.update_state();
                     }
@@ -77,7 +87,10 @@ impl<'a> App<'a> {
                 KeyCode::Char('q') => {
                     self.mode = Mode::Exiting;
                 }
-                KeyCode::Up | KeyCode::Down => self.project_list_state.handle_key(key),
+                KeyCode::Up | KeyCode::Down => {
+                    self.project_list_state.handle_key(key);
+                    self.update_state();
+                }
                 KeyCode::Tab => {
                     self.mode = Mode::SelectingItems;
                 }

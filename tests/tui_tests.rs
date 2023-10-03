@@ -90,7 +90,13 @@ pub mod tui_tests {
             .expect_visible("Item 1")?
             // down to select the second project
             .type_key(KeyCode::Down)
-            .expect_visible("Item 2")?;
+            .expect_visible("Item 2")?
+            // tab and down to select the only item in the second project
+            .type_key(KeyCode::Tab)
+            .type_key(KeyCode::Down)
+            // space to complete it
+            .type_key(KeyCode::Char(' '))
+            .expect_visible("✓ Item 2")?;
 
         Ok(())
     }
