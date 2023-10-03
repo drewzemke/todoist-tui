@@ -18,6 +18,9 @@ pub mod tui_tests {
 
         TuiTester::new(app, 20, 20)?
             .expect_visible("Inbox")?
+            // regression: press down arrow twice in an empty inbox caused a crash
+            .type_key(KeyCode::Down)
+            .type_key(KeyCode::Down)
             .type_string("q")
             .expect_exiting();
 

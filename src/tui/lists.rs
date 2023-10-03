@@ -45,6 +45,10 @@ impl State {
     }
 
     fn select_next(&mut self) {
+        if self.length == 0 {
+            return;
+        }
+
         let next_index = match self.state.selected() {
             Some(index) => {
                 if index >= self.length - 1 {
@@ -55,10 +59,15 @@ impl State {
             }
             None => 0,
         };
+
         self.state.select(Some(next_index));
     }
 
     fn select_previous(&mut self) {
+        if self.length == 0 {
+            return;
+        }
+
         let previous_index = match self.state.selected() {
             Some(index) => {
                 if index == 0 {
@@ -69,6 +78,7 @@ impl State {
             }
             None => 0,
         };
+
         self.state.select(Some(previous_index));
     }
 
