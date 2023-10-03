@@ -6,7 +6,7 @@ use crate::model::Model;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::{Backend, Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
 use tui_input::{backend::crossterm::EventHandler, Input};
@@ -135,6 +135,7 @@ impl<'a> App<'a> {
             let input = Paragraph::new(self.input.value())
                 .scroll((0, input_scroll as u16))
                 .block(Block::default().title("New Todo").borders(Borders::ALL));
+            frame.render_widget(Clear, input_rect);
             frame.render_widget(input, input_rect);
 
             #[allow(clippy::cast_possible_truncation)]
