@@ -23,15 +23,15 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn add_item(&mut self, item: &str, project_id: &str) {
-        let new_item = Item::new(item, project_id);
+    pub fn add_item(&mut self, item: &str, project_id: project::Id) {
+        let new_item = Item::new(item, &project_id);
 
         self.commands.push(command::Command {
             request_type: "item_add".to_string(),
             temp_id: Some(new_item.id.to_string()),
             uuid: Uuid::new_v4(),
             args: Args::AddItemCommandArgs(AddItemArgs {
-                project_id: project_id.to_string(),
+                project_id,
                 content: item.to_string(),
             }),
         });
@@ -40,7 +40,7 @@ impl Model {
 
     pub fn add_item_to_inbox(&mut self, item: &str) {
         let project_id = self.user.inbox_project_id.clone();
-        self.add_item(item, &project_id);
+        self.add_item(item, project_id);
     }
 
     /// Marks an item as complete (or uncomplete) and creates (removes) a corresponding command
@@ -92,7 +92,7 @@ impl Model {
     }
 
     #[must_use]
-    pub fn get_items_in_project(&self, project_id: &str) -> Vec<&Item> {
+    pub fn get_items_in_project(&self, project_id: &project::Id) -> Vec<&Item> {
         self.items
             .iter()
             .filter(|item| item.project_id == *project_id)
@@ -171,16 +171,16 @@ mod tests {
     #[test]
     fn add_item_to_inbox() {
         let mut model = Model::default();
-        model.user.inbox_project_id = "INBOX_ID".to_string();
+        model.user.inbox_project_id = "INBOX_ID".into();
         model.add_item_to_inbox("New item!");
 
-        assert_eq!(model.items[0].project_id, "INBOX_ID");
+        assert_eq!(model.items[0].project_id, "INBOX_ID".into());
         assert_eq!(model.items[0].content, "New item!");
         assert_eq!(model.commands[0].request_type, "item_add");
         assert_eq!(
             model.commands[0].args,
             Args::AddItemCommandArgs(AddItemArgs {
-                project_id: "INBOX_ID".to_string(),
+                project_id: "INBOX_ID".into(),
                 content: "New item!".to_string()
             })
         );

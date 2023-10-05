@@ -1,3 +1,4 @@
+use super::project;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -20,7 +21,7 @@ pub enum Args {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct AddItemArgs {
-    pub project_id: String,
+    pub project_id: project::Id,
     pub content: String,
 }
 

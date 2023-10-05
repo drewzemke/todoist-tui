@@ -47,7 +47,7 @@ pub mod sync_tests {
                     temp_id_mapping: HashMap::new(),
                     user: Some(User {
                         full_name: "Drew".to_string(),
-                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".into(),
                     }),
                 },
             )
@@ -89,7 +89,7 @@ pub mod sync_tests {
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
                     user: User {
                         full_name: "Drew".to_string(),
-                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".into(),
                     },
                     items: vec![mock_item_1.clone(), mock_item_2.clone()],
                     commands: vec![command::Command {
@@ -97,7 +97,7 @@ pub mod sync_tests {
                         temp_id: Some(mock_item_2.id.clone()),
                         uuid: command_uuid,
                         args: Args::AddItemCommandArgs(AddItemArgs {
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".into(),
                             content: "Todo Two!".to_string(),
                         }),
                     }],
@@ -128,7 +128,7 @@ pub mod sync_tests {
                     )]),
                     user: Some(User {
                         full_name: "Drew".to_string(),
-                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".into(),
                     }),
                 },
             )
@@ -179,7 +179,7 @@ pub mod sync_tests {
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
                     user: User {
                         full_name: "Drew".to_string(),
-                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                        inbox_project_id: "MOCK_INBOX_PROJECT_ID".into(),
                     },
                     items: vec![mock_item_1.clone(), mock_item_2.clone()],
                     commands: vec![command::Command {
@@ -187,7 +187,7 @@ pub mod sync_tests {
                         temp_id: Some(mock_item_2.id.clone()),
                         uuid: command_uuid,
                         args: Args::AddItemCommandArgs(AddItemArgs {
-                            project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                            project_id: "MOCK_INBOX_PROJECT_ID".into(),
                             content: "Todo Two!".to_string(),
                         }),
                     }],

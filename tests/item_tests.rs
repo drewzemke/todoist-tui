@@ -22,7 +22,7 @@ pub mod item_tests {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
                 user: User {
                     full_name: "Drew".to_string(),
-                    inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                    inbox_project_id: "MOCK_INBOX_PROJECT_ID".into(),
                 },
                 items: vec![mock_item_1, mock_item_2],
                 ..Default::default()
@@ -61,7 +61,7 @@ pub mod item_tests {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
                 user: User {
                     full_name: "Drew".to_string(),
-                    inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                    inbox_project_id: "MOCK_INBOX_PROJECT_ID".into(),
                 },
                 items: vec![mock_item_1, mock_item_2],
                 ..Default::default()
@@ -109,7 +109,7 @@ pub mod item_tests {
                 sync_token: String::from("MOCK_SYNC_TOKEN"),
                 user: User {
                     full_name: "Drew".to_string(),
-                    inbox_project_id: "MOCK_INBOX_PROJECT_ID".to_string(),
+                    inbox_project_id: "MOCK_INBOX_PROJECT_ID".into(),
                 },
                 items: vec![mock_item_1, mock_item_2],
                 ..Default::default()
