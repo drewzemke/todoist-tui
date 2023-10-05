@@ -23,19 +23,24 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn add_item(&mut self, item: &str) {
-        let new_item = Item::new(item, &self.user.inbox_project_id);
+    pub fn add_item(&mut self, item: &str, project_id: &str) {
+        let new_item = Item::new(item, project_id);
 
         self.commands.push(command::Command {
             request_type: "item_add".to_string(),
             temp_id: Some(new_item.id.to_string()),
             uuid: Uuid::new_v4(),
             args: Args::AddItemCommandArgs(AddItemArgs {
-                project_id: self.user.inbox_project_id.clone(),
+                project_id: project_id.to_string(),
                 content: item.to_string(),
             }),
         });
         self.items.push(new_item);
+    }
+
+    pub fn add_item_to_inbox(&mut self, item: &str) {
+        let project_id = self.user.inbox_project_id.clone();
+        self.add_item(item, &project_id);
     }
 
     /// Marks an item as complete (or uncomplete) and creates (removes) a corresponding command
@@ -164,10 +169,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn add_item_to_model() {
+    fn add_item_to_inbox() {
         let mut model = Model::default();
         model.user.inbox_project_id = "INBOX_ID".to_string();
-        model.add_item("New item!");
+        model.add_item_to_inbox("New item!");
 
         assert_eq!(model.items[0].project_id, "INBOX_ID");
         assert_eq!(model.items[0].content, "New item!");

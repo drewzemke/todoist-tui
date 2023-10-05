@@ -2,7 +2,7 @@ use super::{
     lists::{item_list, project_list, State as ListState},
     ui::centered_rect,
 };
-use crate::model::{item::Item, Model};
+use crate::model::{item::Item, project::Project, Model};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::{Backend, Constraint, Direction, Layout},
@@ -45,6 +45,13 @@ impl<'a> App<'a> {
     pub fn update_state(&mut self) {
         let num_items = self.items_in_selected_project().len();
         self.item_list_state = ListState::with_length(num_items);
+    }
+
+    fn selected_project(&self) -> Option<&Project> {
+        let projects = self.model.projects();
+        self.project_list_state
+            .selected_index()
+            .map(|index| projects[index])
     }
 
     fn items_in_selected_project(&self) -> Vec<&Item> {
@@ -102,10 +109,14 @@ impl<'a> App<'a> {
                     self.input.reset();
                 }
                 KeyCode::Enter => {
-                    self.model.add_item(self.input.value());
-                    self.update_state();
-                    self.mode = Mode::SelectingItems;
-                    self.input.reset();
+                    let selected_project = self.selected_project();
+                    if let Some(selected_project) = selected_project {
+                        let project_id = selected_project.id.clone();
+                        self.model.add_item(self.input.value(), &project_id);
+                        self.update_state();
+                        self.mode = Mode::SelectingItems;
+                        self.input.reset();
+                    }
                 }
                 _ => {
                     self.input.handle_event(&Event::Key(key));

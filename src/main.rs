@@ -131,7 +131,7 @@ async fn main() -> Result<()> {
         Some(command) => match command {
             CliCommand::AddTodo { todo, no_sync } => {
                 let mut model = model_manager.read_model()?;
-                model.add_item(&todo);
+                model.add_item_to_inbox(&todo);
                 println!("'{todo}' added to inbox.");
                 if !no_sync {
                     cli::sync(&mut model, &client?, true).await?;

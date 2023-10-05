@@ -28,7 +28,36 @@ pub mod tui_tests {
     }
 
     #[test]
-    fn add_new_todo() -> Result<()> {
+    fn add_new_todo_to_inbox() -> Result<()> {
+        let mut model = Model::default();
+        let project = Project::new("Project");
+        let project_id = project.id.clone();
+        let item1 = Item::new("Item 1", &project.id);
+        let item2 = Item::new("Item 2", &project.id);
+        model.projects.push(project);
+        model.items.push(item1);
+        model.items.push(item2);
+        let app = App::new(&mut model);
+
+        TuiTester::new(app, 40, 10)?
+            // select the project
+            .type_key(KeyCode::Tab)
+            // down to select the first project
+            .type_key(KeyCode::Down)
+            .type_string("a")
+            .expect_visible("New Todo")?
+            .type_string("new todo text")
+            .type_key(KeyCode::Enter)
+            .expect_not_visible("New Todo")?
+            .expect_visible("new todo text")?;
+
+        assert_eq!(model.get_items_in_project(&project_id).len(), 3);
+
+        Ok(())
+    }
+
+    #[test]
+    fn add_new_todo_to_project() -> Result<()> {
         let mut model = Model::default();
         let app = App::new(&mut model);
 
@@ -48,8 +77,8 @@ pub mod tui_tests {
     #[test]
     fn complete_todo() -> Result<()> {
         let mut model = Model::default();
-        model.add_item("Todo 1");
-        model.add_item("Todo 2");
+        model.add_item_to_inbox("Todo 1");
+        model.add_item_to_inbox("Todo 2");
         let app = App::new(&mut model);
 
         TuiTester::new(app, 40, 10)?
