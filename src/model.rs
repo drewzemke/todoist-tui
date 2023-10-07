@@ -114,9 +114,14 @@ impl Model {
         }
 
         // replace the list of projects with the list from the response.
-        // NOTE: this will need to be changed once we introduce commands that
-        // modify projects
-        self.projects = response.projects;
+        // FIXME: we need a more nuanced algorithm to update the projects.
+        // just replacing `self.projects` with `response.projects` is no good
+        // because we don't always query all projects
+        // so for now, only replace projects if the incoming projects
+        // list is nonempty
+        if !response.projects.is_empty() {
+            self.projects = response.projects;
+        }
 
         if response.full_sync {
             // if this was a full sync, just replace the set of items
