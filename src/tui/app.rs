@@ -145,6 +145,7 @@ impl<'a> App<'a> {
         let selected_project = self
             .project_list_state
             .selected_index()
+            // TODO: use `get` here
             .map(|index| projects[index]);
         if let Some(selected_project) = selected_project {
             let items = self.model.get_items_in_project(&selected_project.id);
