@@ -138,7 +138,7 @@ impl<'a> App<'a> {
 
         // render the project list
         let projects = self.model.projects();
-        let project_list = project_list(&projects);
+        let project_list = project_list(&projects, self.mode == Mode::SelectingProjects);
         frame.render_stateful_widget(project_list, chunks[0], &mut self.project_list_state.state);
 
         // render the item list
@@ -148,7 +148,11 @@ impl<'a> App<'a> {
             .map(|index| projects[index]);
         if let Some(selected_project) = selected_project {
             let items = self.model.get_items_in_project(&selected_project.id);
-            let item_list = item_list(&items, &selected_project.name);
+            let item_list = item_list(
+                &items,
+                &selected_project.name,
+                self.mode == Mode::SelectingItems,
+            );
             frame.render_stateful_widget(item_list, chunks[1], &mut self.item_list_state.state);
         }
 

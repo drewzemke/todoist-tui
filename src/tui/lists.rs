@@ -1,6 +1,6 @@
 use crossterm::event::{self, KeyCode};
 use ratatui::{
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     widgets::{Block, Borders, List, ListItem, ListState},
 };
 
@@ -97,7 +97,7 @@ impl State {
 }
 
 #[must_use]
-pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str) -> List<'a> {
+pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str, focused: bool) -> List<'a> {
     let list_items: Vec<ListItem> = items
         .iter()
         .map(|item| {
@@ -109,20 +109,38 @@ pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str) -> List<'a> {
             list_item
         })
         .collect();
+    let mut block = Block::default().borders(Borders::ALL).title(project_name);
+    if focused {
+        block = block.border_style(Style::default().fg(Color::Magenta));
+    }
     let list = List::new(list_items)
-        .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
-        .block(Block::default().borders(Borders::ALL).title(project_name));
+        .highlight_style(
+            Style::default()
+                .bg(Color::White)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD),
+        )
+        .block(block);
     list
 }
 
 #[must_use]
-pub fn project_list<'a>(projects: &'a [&'a Project]) -> List {
+pub fn project_list<'a>(projects: &'a [&'a Project], focused: bool) -> List {
     let list_items: Vec<ListItem> = projects
         .iter()
         .map(|project| ListItem::new(&project.name[..]))
         .collect();
+    let mut block = Block::default().borders(Borders::ALL).title("Projects");
+    if focused {
+        block = block.border_style(Style::default().fg(Color::Magenta));
+    }
     let list = List::new(list_items)
-        .highlight_style(Style::default().bg(Color::White).fg(Color::Black))
-        .block(Block::default().borders(Borders::ALL).title("Projects"));
+        .highlight_style(
+            Style::default()
+                .bg(Color::White)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD),
+        )
+        .block(block);
     list
 }
