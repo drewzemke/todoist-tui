@@ -32,14 +32,14 @@ impl State {
     pub fn set_length(&mut self, length: usize) {
         self.length = length;
         let new_index = match self.state.selected() {
-            Some(index) => {
+            Some(index) if self.length > 0 => {
                 if index >= self.length {
                     Some(self.length - 1)
                 } else {
                     Some(index)
                 }
             }
-            None => None,
+            _ => None,
         };
         self.state.select(new_index);
     }

@@ -44,7 +44,7 @@ impl<'a> App<'a> {
     /// Updates the inner state of model after the model changes.
     pub fn update_state(&mut self) {
         let num_items = self.items_in_selected_project().len();
-        self.item_list_state = ListState::with_length(num_items);
+        self.item_list_state.set_length(num_items);
     }
 
     fn selected_project(&self) -> Option<&Project> {
