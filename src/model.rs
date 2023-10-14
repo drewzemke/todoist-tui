@@ -105,7 +105,6 @@ impl Model {
         self.projects.iter().collect()
     }
 
-    // TODO: test
     pub fn update(&mut self, response: Response) {
         self.sync_token = response.sync_token;
 
@@ -127,18 +126,42 @@ impl Model {
             // if this was a full sync, just replace the set of items
             self.items = response.items;
         } else {
-            // if not, use the id mapping from the response to update the ids of the existing items
+            // use the id mapping from the response to update the ids of the existing items
             response
                 .temp_id_mapping
-                .iter()
+                .into_iter()
                 .for_each(|(temp_id, real_id)| {
                     // HACK: should we do something else if we don't find a match?
                     if let Some(matching_item) =
-                        self.items.iter_mut().find(|item| item.id == *temp_id)
+                        self.items.iter_mut().find(|item| item.id == temp_id)
                     {
-                        matching_item.id = real_id.clone();
+                        matching_item.id = real_id;
                     }
                 });
+
+            // look through the list of items that we received -- add any new items
+            // and update any newly checked items
+            response.items.into_iter().for_each(|incoming_item| {
+                // if the incoming item is checked, see if there's a matching item in the model
+                // and remove it
+                // if the incoming item is unchecked, do the same, but if nothing is found, add this
+                // item to the model
+                let matching_index = self
+                    .items
+                    .iter()
+                    .position(|item| item.id == incoming_item.id);
+
+                match matching_index {
+                    Some(index) => {
+                        if incoming_item.checked {
+                            self.items.remove(index);
+                        } else {
+                            self.items[index] = incoming_item;
+                        }
+                    }
+                    None => self.items.push(incoming_item),
+                }
+            });
         }
 
         // update the command list by removing the commands that succeeded
@@ -171,6 +194,8 @@ impl Default for Model {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
 
     #[test]
@@ -205,5 +230,72 @@ mod tests {
             model.commands[0].args,
             Args::CompleteItemCommandArgs(CompleteItemArgs { id: item_id })
         );
+    }
+
+    #[test]
+    fn incremental_update_with_updated_todos() {
+        let mut model = Model::default();
+        let item1 = Item::new("Item One!", "INBOX_ID");
+        let item1_updated = Item {
+            checked: true,
+            ..item1.clone()
+        };
+
+        let item2 = Item::new("Item Two!", "INBOX_ID");
+        let item2_updated = Item {
+            content: "Item Two with a new title!".into(),
+            ..item2.clone()
+        };
+
+        model.items.push(item1);
+        model.items.push(item2);
+        let response = Response {
+            items: vec![item1_updated, item2_updated],
+            full_sync: false,
+            ..Default::default()
+        };
+
+        model.update(response);
+        assert_eq!(model.items.len(), 1);
+        assert_eq!(model.items[0].content, "Item Two with a new title!");
+    }
+
+    #[test]
+    fn incremental_update_with_new_external_todo() {
+        let mut model = Model::default();
+        let item = Item::new("Item!", "INBOX_ID");
+
+        let response = Response {
+            items: vec![item],
+            full_sync: false,
+            ..Default::default()
+        };
+
+        model.update(response);
+        assert_eq!(model.items.len(), 1);
+        assert_eq!(model.items[0].content, "Item!");
+    }
+
+    #[test]
+    fn incremental_update_after_adding_local_todo() {
+        let mut model = Model::default();
+        let item = Item::new("Item!", "INBOX_ID");
+        let item_updated = Item {
+            id: "NEW_ITEM_ID".into(),
+            ..item.clone()
+        };
+        let item_id = item.id.clone();
+        model.items.push(item);
+
+        let response = Response {
+            items: vec![item_updated],
+            full_sync: false,
+            temp_id_mapping: HashMap::from([(item_id, "NEW_ITEM_ID".into())]),
+            ..Default::default()
+        };
+
+        model.update(response);
+        assert_eq!(model.items.len(), 1);
+        assert_eq!(model.items[0].content, "Item!");
     }
 }

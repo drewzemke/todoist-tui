@@ -6,7 +6,7 @@ use crate::model::{command::Command, item::Item, project::Project, user::User};
 
 pub mod client;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Response {
     pub sync_token: String,
 
