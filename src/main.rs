@@ -101,9 +101,10 @@ async fn main() -> Result<()> {
             if let Ok(ref client) = client {
                 let client = client.clone();
                 let commands = model.commands.clone();
+                let sync_token = model.sync_token.clone();
                 tokio::spawn(async move {
                     let request = Request {
-                        sync_token: "*".into(),
+                        sync_token,
                         resource_types: ResourceType::all(),
                         commands,
                     };
