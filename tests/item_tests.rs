@@ -19,7 +19,6 @@ pub mod item_tests {
         let mock_fs = FsMockBuilder::new()?.mock_file_contents(
             "sync.json",
             serde_json::to_string_pretty(&Model {
-                sync_token: String::from("MOCK_SYNC_TOKEN"),
                 user: User {
                     full_name: "Drew".to_string(),
                     inbox_project_id: "MOCK_INBOX_PROJECT_ID".into(),
@@ -43,6 +42,39 @@ pub mod item_tests {
         cmd.assert()
             .stdout(predicates::str::contains("[1] Todo One!"))
             .stdout(predicates::str::contains("[2] Todo Two!"))
+            .code(0);
+
+        Ok(())
+    }
+
+    #[test]
+    fn get_inbox_items_from_local_empty_inbox() -> Result<()> {
+        // mock `sync.json`
+        let mock_fs = FsMockBuilder::new()?.mock_file_contents(
+            "sync.json",
+            serde_json::to_string_pretty(&Model {
+                user: User {
+                    full_name: "Drew".to_string(),
+                    inbox_project_id: "MOCK_INBOX_PROJECT_ID".into(),
+                },
+                items: vec![],
+                ..Default::default()
+            })?,
+        )?;
+        let mock_data_dir = mock_fs.path();
+
+        // no need to mock the server, but still going to use a fake url to prevent
+        // accidental calls to the real api
+        let server_url = "fake/server/url";
+
+        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
+        cmd.arg("--local-dir").arg(mock_data_dir);
+        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("list");
+
+        // check output
+        cmd.assert()
+            .stdout(predicates::str::contains("empty"))
             .code(0);
 
         Ok(())

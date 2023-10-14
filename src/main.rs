@@ -153,9 +153,13 @@ async fn main() -> Result<()> {
                 let model = model_manager.read_model()?;
                 let inbox_items = model.get_inbox_items(true);
 
-                println!("Inbox: ");
-                for (index, Item { content, .. }) in inbox_items.iter().enumerate() {
-                    println!("[{}] {content}", index + 1);
+                if inbox_items.is_empty() {
+                    println!("Your inbox is empty.");
+                } else {
+                    println!("Inbox: ");
+                    for (index, Item { content, .. }) in inbox_items.iter().enumerate() {
+                        println!("[{}] {content}", index + 1);
+                    }
                 }
             }
 
