@@ -20,8 +20,8 @@ pub mod api_token_tests {
         // run the thing
         let mut cmd = assert_cmd::Command::cargo_bin("tod")
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
-        cmd.arg("--local-dir").arg(mock_data_dir);
-        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("--local-dir-override").arg(mock_data_dir);
+        cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("sync");
 
         // check output
@@ -45,8 +45,8 @@ pub mod api_token_tests {
         // run the thing
         let mut cmd = assert_cmd::Command::cargo_bin("tod")
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
-        cmd.arg("--local-dir").arg(mock_data_dir);
-        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("--local-dir-override").arg(mock_data_dir);
+        cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("set-token").arg("MOCK_API_TOKEN");
 
         // check output

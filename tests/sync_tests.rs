@@ -56,8 +56,8 @@ pub mod sync_tests {
 
         // run the thing
         let mut cmd = Command::cargo_bin("tod")?;
-        cmd.arg("--local-dir").arg(mock_data_dir);
-        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("--local-dir-override").arg(mock_data_dir);
+        cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("sync");
 
         // check output
@@ -136,8 +136,8 @@ pub mod sync_tests {
         let server_url = mock_server.uri();
 
         let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
-        cmd.arg("--local-dir").arg(mock_data_dir);
-        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("--local-dir-override").arg(mock_data_dir);
+        cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("sync");
 
         // check output
@@ -219,8 +219,8 @@ pub mod sync_tests {
         let server_url = mock_server.uri();
 
         let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
-        cmd.arg("--local-dir").arg(mock_data_dir);
-        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("--local-dir-override").arg(mock_data_dir);
+        cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("sync").arg("--incremental");
 
         // check output

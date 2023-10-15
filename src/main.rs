@@ -23,12 +23,12 @@ struct Args {
     command: Option<CliCommand>,
 
     /// Override the URL for the Todoist Sync API (mostly for testing purposes)
-    #[arg(long = "sync-url", hide = true)]
-    sync_url: Option<String>,
+    #[arg(long = "sync-url-override", hide = true)]
+    sync_url_override: Option<String>,
 
     /// Override the local app storage directory (mostly for testing purposes)
-    #[arg(long = "local-dir", hide = true)]
-    local_dir: Option<String>,
+    #[arg(long = "local-dir-override", hide = true)]
+    local_dir_override: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -84,13 +84,13 @@ struct Config {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    let file_manager = FileManager::init(args.local_dir)?;
+    let file_manager = FileManager::init(args.local_dir_override)?;
     let config_manager = ConfigManager::new(&file_manager);
     let model_manager = ModelManager::new(&file_manager);
 
     let client = config_manager
         .get_api_token()
-        .map(|token| Client::new(token, args.sync_url));
+        .map(|token| Client::new(token, args.sync_url_override));
 
     match args.command {
         None => {

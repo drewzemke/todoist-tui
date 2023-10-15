@@ -34,8 +34,8 @@ pub mod item_tests {
         let server_url = "fake/server/url";
 
         let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
-        cmd.arg("--local-dir").arg(mock_data_dir);
-        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("--local-dir-override").arg(mock_data_dir);
+        cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("list");
 
         // check output
@@ -68,8 +68,8 @@ pub mod item_tests {
         let server_url = "fake/server/url";
 
         let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
-        cmd.arg("--local-dir").arg(mock_data_dir);
-        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("--local-dir-override").arg(mock_data_dir);
+        cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("list");
 
         // check output
@@ -106,8 +106,8 @@ pub mod item_tests {
         let server_url = "fake/server/url";
 
         let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
-        cmd.arg("--local-dir").arg(mock_data_dir);
-        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("--local-dir-override").arg(mock_data_dir);
+        cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("add").arg("new todo!");
         cmd.arg("--no-sync");
 
@@ -154,8 +154,8 @@ pub mod item_tests {
         let server_url = "fake/server/url";
 
         let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
-        cmd.arg("--local-dir").arg(mock_data_dir);
-        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("--local-dir-override").arg(mock_data_dir);
+        cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("complete").arg("1");
         cmd.arg("--no-sync");
 
@@ -175,8 +175,8 @@ pub mod item_tests {
 
         // the completed todo should no longer appear when running 'list'
         let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
-        cmd.arg("--local-dir").arg(mock_data_dir);
-        cmd.arg("--sync-url").arg(server_url);
+        cmd.arg("--local-dir-override").arg(mock_data_dir);
+        cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("list");
 
         // check output again
