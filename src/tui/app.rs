@@ -76,7 +76,7 @@ impl<'a> App<'a> {
                     self.mode = Mode::Exiting;
                 }
                 KeyCode::Up | KeyCode::Down => self.item_list_state.handle_key(key),
-                KeyCode::Tab => {
+                KeyCode::Tab | KeyCode::Left => {
                     self.mode = Mode::SelectingProjects;
                 }
                 KeyCode::Char(' ') => {
@@ -100,7 +100,7 @@ impl<'a> App<'a> {
                     self.project_list_state.handle_key(key);
                     self.update_state();
                 }
-                KeyCode::Tab => {
+                KeyCode::Tab | KeyCode::Right => {
                     self.mode = Mode::SelectingItems;
                 }
                 _ => {}
