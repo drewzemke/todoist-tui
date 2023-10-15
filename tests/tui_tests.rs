@@ -5,9 +5,14 @@ pub mod test_utils;
 pub mod tui_tests {
     use crate::test_utils::TuiTester;
     use anyhow::Result;
+    use chrono::{NaiveDate, NaiveDateTime};
     use crossterm::event::KeyCode;
     use tod::{
-        model::{item::Item, project::Project, Model},
+        model::{
+            item::{Due, DueDate, Item},
+            project::Project,
+            Model,
+        },
         tui::app::App,
     };
 
@@ -157,6 +162,35 @@ pub mod tui_tests {
             .expect_visible("New Todo")?
             .expect_visible("enter: add todo")?
             .expect_visible("escape: cancel")?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn show_due_dates_and_times() -> Result<()> {
+        let mut model = Model::default();
+        model.add_item_to_inbox("Todo 1");
+        model.items[0].due = Some(Due {
+            date: DueDate::Date(
+                NaiveDate::parse_from_str("2011-11-12", "%Y-%m-%d").expect("parse date"),
+            ),
+        });
+
+        model.add_item_to_inbox("Todo 2");
+        model.items[1].due = Some(Due {
+            date: DueDate::DateTime(
+                NaiveDateTime::parse_from_str("2011-10-14 3:48", "%Y-%m-%d %H:%M")
+                    .expect("parse datetime"),
+            ),
+        });
+
+        let app = App::new(&mut model);
+
+        TuiTester::new(app, 60, 10)?
+            .expect_visible("Todo 1")?
+            .expect_visible("2011-11-12")?
+            .expect_visible("Todo 2")?
+            .expect_visible("2011-10-14 03:48")?;
 
         Ok(())
     }

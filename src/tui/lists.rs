@@ -1,6 +1,7 @@
 use crossterm::event::{self, KeyCode};
 use ratatui::{
     style::{Color, Modifier, Style},
+    text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, ListState},
 };
 
@@ -98,17 +99,7 @@ impl State {
 
 #[must_use]
 pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str, focused: bool) -> List<'a> {
-    let list_items: Vec<ListItem> = items
-        .iter()
-        .map(|item| {
-            let check = if item.checked { "✓" } else { "-" };
-            let mut list_item = ListItem::new(format!("{check} {}", &item.content[..]));
-            if item.checked {
-                list_item = list_item.style(Style::default().fg(Color::Green));
-            }
-            list_item
-        })
-        .collect();
+    let list_items: Vec<ListItem> = items.iter().map(render_item).collect();
     let block = Block::default()
         .borders(Borders::ALL)
         .title(project_name)
@@ -122,6 +113,25 @@ pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str, focused: bool
         )
         .block(block);
     list
+}
+
+fn render_item<'a>(item: &'a &'a Item) -> ListItem<'a> {
+    let mut spans = vec![
+        Span::raw(if item.checked { "✓ " } else { "- " }),
+        Span::raw(&item.content),
+    ];
+
+    if let Some(due_date) = &item.due {
+        spans.push(Span::styled(
+            format!("  ({due_date})"),
+            Style::default().fg(Color::Gray),
+        ));
+    }
+    let mut list_item = ListItem::new(Line::from(spans));
+    if item.checked {
+        list_item = list_item.style(Style::default().fg(Color::Green));
+    }
+    list_item
 }
 
 #[must_use]
