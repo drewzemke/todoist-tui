@@ -13,7 +13,6 @@ crossterm = "0.27.0"
 dirs = "5.0.1"
 ratatui = { version = "0.23.0", features = ["all-widgets"] }
 reqwest = { version = "0.11.18", features = ["blocking", "json"] }
-rexpect = "0.5.0"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.99"
 tokio = { version = "1.28.2", features = ["full"] }
@@ -25,4 +24,5 @@ uuid = { version = "1.4.0", features = ["v4", "serde"] }
 assert_cmd = "2.0.11"
 assert_fs = "1.0.13"
 predicates = "3.0.3"
+rexpect = "0.5.0"
 wiremock = "0.5.19"
