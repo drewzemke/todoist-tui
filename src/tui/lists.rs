@@ -109,10 +109,10 @@ pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str, focused: bool
             list_item
         })
         .collect();
-    let mut block = Block::default().borders(Borders::ALL).title(project_name);
-    if focused {
-        block = block.border_style(Style::default().fg(Color::Magenta));
-    }
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(project_name)
+        .border_style(Style::default().fg(if focused { Color::White } else { Color::Gray }));
     let list = List::new(list_items)
         .highlight_style(
             Style::default()
@@ -130,10 +130,10 @@ pub fn project_list<'a>(projects: &'a [&'a Project], focused: bool) -> List {
         .iter()
         .map(|project| ListItem::new(&project.name[..]))
         .collect();
-    let mut block = Block::default().borders(Borders::ALL).title("Projects");
-    if focused {
-        block = block.border_style(Style::default().fg(Color::Magenta));
-    }
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title("Projects")
+        .border_style(Style::default().fg(if focused { Color::White } else { Color::Gray }));
     let list = List::new(list_items)
         .highlight_style(
             Style::default()
