@@ -1611,6 +1611,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a507befe795404456341dfab10cef66ead4c041f62b8b11bbb92bffe5d0953e0"
 
 [[package]]
+name = "smart-date"
+version = "0.1.0"
+source = "git+https://github.com/drewzemke/smart-date.git#75bf5c02ae6acfb8a891f3e6f0cecec7cbc3c8eb"
+dependencies = [
+ "chrono",
+]
+
+[[package]]
 name = "socket2"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1760,6 +1768,7 @@ dependencies = [
  "rexpect",
  "serde",
  "serde_json",
+ "smart-date",
  "tokio",
  "toml",
  "tui-input",
