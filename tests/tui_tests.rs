@@ -28,7 +28,7 @@ pub mod tui_tests {
     }
 
     #[test]
-    fn add_new_todo_to_inbox() -> Result<()> {
+    fn add_new_todo_to_project() -> Result<()> {
         let mut model = Model::default();
         let project = Project::new("Project");
         let project_id = project.id.clone();
@@ -39,13 +39,14 @@ pub mod tui_tests {
         model.items.push(item2);
         let app = App::new(&mut model);
 
-        TuiTester::new(app, 40, 10)?
-            // select the project
+        TuiTester::new(app, 80, 10)?
             .type_key(KeyCode::Tab)
             // down to select the first project
             .type_key(KeyCode::Down)
             .type_string("a")
             .expect_visible("New Todo")?
+            .expect_visible("enter: add todo")?
+            .expect_visible("escape: cancel")?
             .type_string("new todo text")
             .type_key(KeyCode::Enter)
             .expect_not_visible("New Todo")?
@@ -57,7 +58,7 @@ pub mod tui_tests {
     }
 
     #[test]
-    fn add_new_todo_to_project() -> Result<()> {
+    fn add_new_todo_to_inbox() -> Result<()> {
         let mut model = Model::default();
         let app = App::new(&mut model);
 
@@ -126,6 +127,36 @@ pub mod tui_tests {
             // space to complete it
             .type_key(KeyCode::Char(' '))
             .expect_visible("✓ Item 2")?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn show_key_hints() -> Result<()> {
+        let mut model = Model::default();
+        let project1 = Project::new("Project 1");
+        let project2 = Project::new("Project 2");
+        let item1 = Item::new("Item 1", &project1.id);
+        let item2 = Item::new("Item 2", &project2.id);
+        model.projects.push(project1);
+        model.projects.push(project2);
+        model.items.push(item1);
+        model.items.push(item2);
+        let app = App::new(&mut model);
+
+        TuiTester::new(app, 100, 10)?
+            // key hints in select item mode
+            .expect_visible("q: quit")?
+            .expect_visible("tab: change focus")?
+            .expect_visible("↑↓: select")?
+            .expect_visible("a: new todo")?
+            .expect_visible("space: mark complete")?
+            // key hints in add item mode
+            // tab to move focus to the projects panel
+            .type_string("a")
+            .expect_visible("New Todo")?
+            .expect_visible("enter: add todo")?
+            .expect_visible("escape: cancel")?;
 
         Ok(())
     }

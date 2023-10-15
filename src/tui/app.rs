@@ -1,4 +1,5 @@
 use super::{
+    key_hints::KeyHint,
     lists::{item_list, project_list, State as ListState},
     ui::centered_rect,
 };
@@ -6,6 +7,7 @@ use crate::model::{item::Item, project::Project, Model};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::{Backend, Constraint, Direction, Layout},
+    text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
@@ -131,15 +133,24 @@ impl<'a> App<'a> {
     /// # Errors
     /// Returns an error if something goes wrong during the render process.
     pub fn render<'b, B: Backend + 'b>(&mut self, frame: &mut Frame<'b, B>) {
-        let chunks = Layout::default()
+        let layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(3), Constraint::Max(1)])
+            .split(frame.size());
+        let main_panel = layout[0];
+        let bottom_panel = layout[1];
+
+        let main_panel_layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(frame.size());
+            .split(main_panel);
+        let main_left = main_panel_layout[0];
+        let main_right = main_panel_layout[1];
 
         // render the project list
         let projects = self.model.projects();
         let project_list = project_list(&projects, self.mode == Mode::SelectingProjects);
-        frame.render_stateful_widget(project_list, chunks[0], &mut self.project_list_state.state);
+        frame.render_stateful_widget(project_list, main_left, &mut self.project_list_state.state);
 
         // render the item list
         let selected_project = self
@@ -154,8 +165,19 @@ impl<'a> App<'a> {
                 &selected_project.name,
                 self.mode == Mode::SelectingItems,
             );
-            frame.render_stateful_widget(item_list, chunks[1], &mut self.item_list_state.state);
+            frame.render_stateful_widget(item_list, main_right, &mut self.item_list_state.state);
         }
+
+        // render the key hints
+        let key_hints = KeyHint::from_mode(&self.mode);
+        let key_hint_line: Line = Line::from(
+            key_hints
+                .into_iter()
+                .flat_map(Into::<Vec<Span>>::into)
+                .collect::<Vec<Span>>(),
+        );
+
+        frame.render_widget(Paragraph::new(key_hint_line), bottom_panel);
 
         if self.mode == Mode::AddingItem {
             let input_rect = centered_rect(frame.size(), 50, 3, Some(2));

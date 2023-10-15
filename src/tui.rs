@@ -14,6 +14,7 @@ use std::{
 };
 
 pub mod app;
+pub mod key_hints;
 pub mod lists;
 pub mod ui;
 
