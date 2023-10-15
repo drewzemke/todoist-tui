@@ -114,7 +114,7 @@ impl<'a> App<'a> {
                     let selected_project = self.selected_project();
                     if let Some(selected_project) = selected_project {
                         let project_id = selected_project.id.clone();
-                        self.model.add_item(self.input.value(), project_id);
+                        self.model.add_item(self.input.value(), project_id, None);
                         self.update_state();
                         self.mode = Mode::SelectingItems;
                         self.input.reset();

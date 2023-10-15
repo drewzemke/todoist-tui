@@ -99,6 +99,7 @@ pub mod sync_tests {
                         args: Args::AddItemCommandArgs(AddItemArgs {
                             project_id: "MOCK_INBOX_PROJECT_ID".into(),
                             content: "Todo Two!".to_string(),
+                            due: None,
                         }),
                     }],
                     ..Default::default()
@@ -189,6 +190,7 @@ pub mod sync_tests {
                         args: Args::AddItemCommandArgs(AddItemArgs {
                             project_id: "MOCK_INBOX_PROJECT_ID".into(),
                             content: "Todo Two!".to_string(),
+                            due: None,
                         }),
                     }],
                     ..Default::default()

@@ -83,8 +83,8 @@ pub mod tui_tests {
     #[test]
     fn complete_todo() -> Result<()> {
         let mut model = Model::default();
-        model.add_item_to_inbox("Todo 1");
-        model.add_item_to_inbox("Todo 2");
+        model.add_item_to_inbox("Todo 1", None);
+        model.add_item_to_inbox("Todo 2", None);
         let app = App::new(&mut model);
 
         TuiTester::new(app, 40, 10)?
@@ -169,20 +169,24 @@ pub mod tui_tests {
     #[test]
     fn show_due_dates_and_times() -> Result<()> {
         let mut model = Model::default();
-        model.add_item_to_inbox("Todo 1");
-        model.items[0].due = Some(Due {
-            date: DueDate::Date(
-                NaiveDate::parse_from_str("2011-11-12", "%Y-%m-%d").expect("parse date"),
-            ),
-        });
+        model.add_item_to_inbox(
+            "Todo 1",
+            Some(Due {
+                date: DueDate::Date(
+                    NaiveDate::parse_from_str("2011-11-12", "%Y-%m-%d").expect("parse date"),
+                ),
+            }),
+        );
 
-        model.add_item_to_inbox("Todo 2");
-        model.items[1].due = Some(Due {
-            date: DueDate::DateTime(
-                NaiveDateTime::parse_from_str("2011-10-14 3:48", "%Y-%m-%d %H:%M")
-                    .expect("parse datetime"),
-            ),
-        });
+        model.add_item_to_inbox(
+            "Todo 2",
+            Some(Due {
+                date: DueDate::DateTime(
+                    NaiveDateTime::parse_from_str("2011-10-14 3:48", "%Y-%m-%d %H:%M")
+                        .expect("parse datetime"),
+                ),
+            }),
+        );
 
         let app = App::new(&mut model);
 

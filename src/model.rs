@@ -1,6 +1,6 @@
 use self::{
     command::{AddItemArgs, Args, Command, CompleteItemArgs},
-    item::Item,
+    item::{Due, Item},
     project::Project,
     user::User,
 };
@@ -23,8 +23,9 @@ pub struct Model {
 }
 
 impl Model {
-    pub fn add_item(&mut self, item: &str, project_id: project::Id) {
-        let new_item = Item::new(item, &project_id);
+    pub fn add_item(&mut self, item: &str, project_id: project::Id, due_date: Option<Due>) {
+        let mut new_item = Item::new(item, &project_id);
+        new_item.due = due_date.clone();
 
         self.commands.push(command::Command {
             request_type: "item_add".to_string(),
@@ -33,14 +34,15 @@ impl Model {
             args: Args::AddItemCommandArgs(AddItemArgs {
                 project_id,
                 content: item.to_string(),
+                due: due_date,
             }),
         });
         self.items.push(new_item);
     }
 
-    pub fn add_item_to_inbox(&mut self, item: &str) {
+    pub fn add_item_to_inbox(&mut self, item: &str, due_date: Option<Due>) {
         let project_id = self.user.inbox_project_id.clone();
-        self.add_item(item, project_id);
+        self.add_item(item, project_id, due_date);
     }
 
     /// Marks an item as complete (or uncomplete) and creates (removes) a corresponding command
@@ -202,7 +204,7 @@ mod tests {
     fn add_item_to_inbox() {
         let mut model = Model::default();
         model.user.inbox_project_id = "INBOX_ID".into();
-        model.add_item_to_inbox("New item!");
+        model.add_item_to_inbox("New item!", None);
 
         assert_eq!(model.items[0].project_id, "INBOX_ID".into());
         assert_eq!(model.items[0].content, "New item!");
@@ -211,7 +213,8 @@ mod tests {
             model.commands[0].args,
             Args::AddItemCommandArgs(AddItemArgs {
                 project_id: "INBOX_ID".into(),
-                content: "New item!".to_string()
+                content: "New item!".to_string(),
+                due: None
             })
         );
     }

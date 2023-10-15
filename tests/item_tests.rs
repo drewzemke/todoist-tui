@@ -4,8 +4,13 @@ pub mod test_utils;
 #[cfg(test)]
 pub mod item_tests {
     use anyhow::Result;
+    use chrono::Datelike;
     use std::fs;
-    use tod::model::{item::Item, user::User, Model};
+    use tod::model::{
+        item::{Due, DueDate, Item},
+        user::User,
+        Model,
+    };
 
     use crate::test_utils::FsMockBuilder;
 
@@ -108,7 +113,9 @@ pub mod item_tests {
         let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
+        cmd.arg("--date-time-override").arg("2021-10-06T08:00:00");
         cmd.arg("add").arg("new todo!");
+        cmd.arg("--due").arg("tomorrow");
         cmd.arg("--no-sync");
 
         // check output
@@ -124,6 +131,17 @@ pub mod item_tests {
         let model: Model = serde_json::from_str(&file_contents)?;
         assert_eq!(model.commands.len(), 1);
         assert_eq!(model.commands[0].request_type, "item_add");
+        assert!(model
+            .items
+            .last()
+            .expect("there should be items here")
+            .due
+            .as_ref()
+            .is_some_and(|Due { date }| if let DueDate::DateTime(datetime) = date {
+                datetime.month() == 10 && datetime.day() == 7
+            } else {
+                false
+            }));
 
         Ok(())
     }

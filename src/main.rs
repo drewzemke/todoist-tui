@@ -2,11 +2,12 @@
 use std::sync::mpsc;
 
 use anyhow::Result;
+use chrono::{Local, NaiveDateTime};
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use tod::{
     cli,
-    model::item::Item,
+    model::item::{Due, DueDate, Item},
     storage::{
         config_manager::{Auth, ConfigManager},
         file_manager::FileManager,
@@ -29,6 +30,10 @@ struct Args {
     /// Override the local app storage directory (mostly for testing purposes)
     #[arg(long = "local-dir-override", hide = true)]
     local_dir_override: Option<String>,
+
+    /// Override the date/time the app uses as current date/time
+    #[arg(long = "date-time-override", hide = true)]
+    datetime_override: Option<NaiveDateTime>,
 }
 
 #[derive(Subcommand)]
@@ -38,6 +43,10 @@ enum CliCommand {
     AddTodo {
         /// The text of the todo
         todo: String,
+
+        /// When the todo is due
+        #[arg(long, short)]
+        due: Option<String>,
 
         /// Don't sync data with the server
         #[arg(long = "no-sync", short)]
@@ -130,9 +139,23 @@ async fn main() -> Result<()> {
         }
 
         Some(command) => match command {
-            CliCommand::AddTodo { todo, no_sync } => {
+            CliCommand::AddTodo { todo, no_sync, due } => {
+                // TODO: parse the date first, it might be no good and we'll need to error out
+                let due_date = due
+                    .and_then(|date_string| {
+                        let now = args.datetime_override.map_or(Local::now(), |datetime| {
+                            // FIXME: stop using <Local> in `smart-date`, so we can remove this unwrap
+                            // (it shouldn't ever fail afaik)
+                            datetime.and_local_timezone(Local).unwrap()
+                        });
+                        smart_date::parse(&date_string, &now)
+                    })
+                    .map(|result| Due {
+                        date: DueDate::DateTime(result.data.naive_local()),
+                    });
+
                 let mut model = model_manager.read_model()?;
-                model.add_item_to_inbox(&todo);
+                model.add_item_to_inbox(&todo, due_date);
                 println!("'{todo}' added to inbox.");
                 if !no_sync {
                     cli::sync(&mut model, &client?, true).await?;
