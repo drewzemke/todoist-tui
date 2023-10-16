@@ -143,15 +143,11 @@ async fn main() -> Result<()> {
                 // TODO: parse the date first, it might be no good and we'll need to error out
                 let due_date = due
                     .and_then(|date_string| {
-                        let now = args.datetime_override.map_or(Local::now(), |datetime| {
-                            // FIXME: stop using <Local> in `smart-date`, so we can remove this unwrap
-                            // (it shouldn't ever fail afaik)
-                            datetime.and_local_timezone(Local).unwrap()
-                        });
+                        let now = args.datetime_override.unwrap_or(Local::now().naive_local());
                         smart_date::parse(&date_string, &now)
                     })
                     .map(|result| Due {
-                        date: DueDate::DateTime(result.data.naive_local()),
+                        date: DueDate::DateTime(result.data),
                     });
 
                 let mut model = model_manager.read_model()?;
