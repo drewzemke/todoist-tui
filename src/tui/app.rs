@@ -150,14 +150,17 @@ impl<'a> App<'a> {
                             format!(
                                 "{}{}",
                                 &input[0..range.start],
-                                &input[range.end..input.len()]
+                                &input[input.len().min(range.end + 1)..input.len()]
                             )
                         } else {
                             input.to_string()
                         };
 
-                        self.model
-                            .add_item(&content, project_id, due_date.map(|(date, _)| date));
+                        self.model.add_item(
+                            content.trim(),
+                            project_id,
+                            due_date.map(|(date, _)| date),
+                        );
                         self.update_state();
                         self.mode = Mode::SelectingItems;
                         self.input.reset();

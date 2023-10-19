@@ -70,7 +70,7 @@ pub mod tui_tests {
         let today = NaiveDate::parse_from_str("2023-10-08", "%Y-%m-%d").unwrap();
         let app = App::new_with_date(&mut model, today);
 
-        TuiTester::new(app, 70, 10)?
+        TuiTester::new(app, 80, 10)?
             .type_string("a")
             .expect_visible("New Todo")?
             .type_string("buy potatoes tomorrow")
@@ -79,9 +79,15 @@ pub mod tui_tests {
             // check that the new item is visible _without_ the tomorrow prefix
             .expect_visible("buy potatoes")?
             .expect_not_visible("buy potatoes tomorrow")?
-            .expect_visible("2023-10-09")?;
+            .expect_visible("2023-10-09")?
+            .type_string("a")
+            .expect_visible("New Todo")?
+            .type_string("but buy apples today okay?")
+            .type_key(KeyCode::Enter)
+            .expect_not_visible("New Todo")?
+            .expect_visible("2023-10-08")?;
 
-        assert_eq!(model.get_inbox_items(true).len(), 1);
+        assert_eq!(model.get_inbox_items(true).len(), 2);
 
         Ok(())
     }
