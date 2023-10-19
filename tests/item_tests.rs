@@ -137,8 +137,8 @@ pub mod item_tests {
             .expect("there should be items here")
             .due
             .as_ref()
-            .is_some_and(|Due { date }| if let DueDate::DateTime(datetime) = date {
-                datetime.month() == 10 && datetime.day() == 7
+            .is_some_and(|Due { date }| if let DueDate::Date(date) = date {
+                date.month() == 10 && date.day() == 7
             } else {
                 false
             }));

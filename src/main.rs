@@ -5,6 +5,7 @@ use anyhow::Result;
 use chrono::{Local, NaiveDateTime};
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
+use smart_date::FlexibleDate;
 use tod::{
     cli,
     model::item::{Due, DueDate, Item},
@@ -142,12 +143,16 @@ async fn main() -> Result<()> {
             CliCommand::AddTodo { todo, no_sync, due } => {
                 // TODO: parse the date first, it might be no good and we'll need to error out
                 let due_date = due
-                    .and_then(|date_string| {
-                        let now = args.datetime_override.unwrap_or(Local::now().naive_local());
-                        smart_date::parse(&date_string, &now)
+                    .and_then(|date_string| FlexibleDate::parse_from_str(&date_string))
+                    .map(|date| {
+                        let today = args
+                            .datetime_override
+                            .unwrap_or(Local::now().naive_local())
+                            .date();
+                        date.into_naive_date(today)
                     })
-                    .map(|result| Due {
-                        date: DueDate::DateTime(result.data),
+                    .map(|date| Due {
+                        date: DueDate::Date(date),
                     });
 
                 let mut model = model_manager.read_model()?;
