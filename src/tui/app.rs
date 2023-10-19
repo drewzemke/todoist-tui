@@ -3,7 +3,12 @@ use super::{
     lists::{item_list, project_list, State as ListState},
     ui::centered_rect,
 };
-use crate::model::{item::Item, project::Project, Model};
+use crate::model::{
+    item::{Due, DueDate, Item},
+    project::Project,
+    Model,
+};
+use chrono::{Local, NaiveDate};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::{Backend, Constraint, Direction, Layout},
@@ -11,6 +16,7 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
+use smart_date::{FlexibleDate, Parsed};
 use tui_input::{backend::crossterm::EventHandler, Input};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -28,6 +34,7 @@ pub struct App<'a> {
     input: Input,
     item_list_state: ListState,
     project_list_state: ListState,
+    today: NaiveDate,
 }
 
 impl<'a> App<'a> {
@@ -40,6 +47,15 @@ impl<'a> App<'a> {
             input: Input::default(),
             item_list_state: ListState::with_length(num_items),
             project_list_state: ListState::new(num_projects, 0),
+            today: Local::now().date_naive(),
+        }
+    }
+
+    /// FIXME: This is used for testing; is there a more elegant way to accomplish that?
+    pub fn new_with_date(model: &'a mut Model, today: NaiveDate) -> Self {
+        Self {
+            today,
+            ..Self::new(model)
         }
     }
 
@@ -114,7 +130,34 @@ impl<'a> App<'a> {
                     let selected_project = self.selected_project();
                     if let Some(selected_project) = selected_project {
                         let project_id = selected_project.id.clone();
-                        self.model.add_item(self.input.value(), project_id, None);
+
+                        // process the input to maybe find a date
+                        // TODO : dep inj for today's date
+                        let input = self.input.value();
+                        let due_date = FlexibleDate::find_and_parse_in_str(input)
+                            .map(|Parsed { data, range }| (data.into_naive_date(self.today), range))
+                            .map(|(date, range)| {
+                                (
+                                    Due {
+                                        date: DueDate::Date(date),
+                                    },
+                                    range,
+                                )
+                            });
+
+                        // if a date was found, remove the matched string from the text content of the new item
+                        let content = if let Some((_, ref range)) = due_date {
+                            format!(
+                                "{}{}",
+                                &input[0..range.start],
+                                &input[range.end..input.len()]
+                            )
+                        } else {
+                            input.to_string()
+                        };
+
+                        self.model
+                            .add_item(&content, project_id, due_date.map(|(date, _)| date));
                         self.update_state();
                         self.mode = Mode::SelectingItems;
                         self.input.reset();

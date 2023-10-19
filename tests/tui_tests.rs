@@ -3,6 +3,8 @@ pub mod test_utils;
 
 #[cfg(test)]
 pub mod tui_tests {
+    #![allow(clippy::unwrap_used)]
+
     use crate::test_utils::TuiTester;
     use anyhow::Result;
     use chrono::{NaiveDate, NaiveDateTime};
@@ -63,17 +65,21 @@ pub mod tui_tests {
     }
 
     #[test]
-    fn add_new_todo_to_inbox() -> Result<()> {
+    fn add_new_todo_with_smart_date() -> Result<()> {
         let mut model = Model::default();
-        let app = App::new(&mut model);
+        let today = NaiveDate::parse_from_str("2023-10-08", "%Y-%m-%d").unwrap();
+        let app = App::new_with_date(&mut model, today);
 
-        TuiTester::new(app, 40, 10)?
+        TuiTester::new(app, 70, 10)?
             .type_string("a")
             .expect_visible("New Todo")?
-            .type_string("new todo text")
+            .type_string("buy potatoes tomorrow")
             .type_key(KeyCode::Enter)
             .expect_not_visible("New Todo")?
-            .expect_visible("new todo text")?;
+            // check that the new item is visible _without_ the tomorrow prefix
+            .expect_visible("buy potatoes")?
+            .expect_not_visible("buy potatoes tomorrow")?
+            .expect_visible("2023-10-09")?;
 
         assert_eq!(model.get_inbox_items(true).len(), 1);
 
