@@ -3,12 +3,7 @@ use super::{
     lists::{item_list, project_list, State as ListState},
     ui::centered_rect,
 };
-use crate::model::{
-    due_date::{Due, DueDate},
-    item::Item,
-    project::Project,
-    Model,
-};
+use crate::model::{due_date::Due, item::Item, project::Project, Model};
 use chrono::{Local, NaiveDate};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
@@ -18,7 +13,6 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
-use smart_date::{FlexibleDate, Parsed};
 use tui_input::{backend::crossterm::EventHandler, Input};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -134,18 +128,8 @@ impl<'a> App<'a> {
                         let project_id = selected_project.id.clone();
 
                         // process the input to maybe find a date
-                        // TODO : dep inj for today's date
                         let input = self.input.value();
-                        let due_date = FlexibleDate::find_and_parse_in_str(input)
-                            .map(|Parsed { data, range }| (data.into_naive_date(self.today), range))
-                            .map(|(date, range)| {
-                                (
-                                    Due {
-                                        date: DueDate::Date(date),
-                                    },
-                                    range,
-                                )
-                            });
+                        let due_date = Due::parse_from_str(input, self.today);
 
                         // if a date was found, remove the matched string from the text content of the new item
                         let content = if let Some((_, ref range)) = due_date {
@@ -229,16 +213,7 @@ impl<'a> App<'a> {
         // render the input bar if adding something
         if self.mode == Mode::AddingItem {
             // preprocess the current input string to see if there's a date inside
-            let due_date = FlexibleDate::find_and_parse_in_str(self.input.value())
-                .map(|Parsed { data, range }| (data.into_naive_date(self.today), range))
-                .map(|(date, range)| {
-                    (
-                        Due {
-                            date: DueDate::Date(date),
-                        },
-                        range,
-                    )
-                });
+            let due_date = Due::parse_from_str(self.input.value(), self.today);
             let input_widget = if let Some((_, range)) = due_date {
                 let (before, after) = self.input.value().split_at(range.start);
                 let (date, after) = after.split_at(range.end - before.len());
