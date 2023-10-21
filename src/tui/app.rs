@@ -12,6 +12,7 @@ use chrono::{Local, NaiveDate};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::{Backend, Constraint, Direction, Layout},
+    style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
@@ -222,18 +223,43 @@ impl<'a> App<'a> {
                 .flat_map(Into::<Vec<Span>>::into)
                 .collect::<Vec<Span>>(),
         );
-
         frame.render_widget(Paragraph::new(key_hint_line), bottom_panel);
 
+        // render the input bar if adding something
         if self.mode == Mode::AddingItem {
+            // preprocess the current input string to see if there's a date inside
+            let due_date = FlexibleDate::find_and_parse_in_str(self.input.value())
+                .map(|Parsed { data, range }| (data.into_naive_date(self.today), range))
+                .map(|(date, range)| {
+                    (
+                        Due {
+                            date: DueDate::Date(date),
+                        },
+                        range,
+                    )
+                });
+            let input_widget = if let Some((_, range)) = due_date {
+                let (before, after) = self.input.value().split_at(range.start);
+                let (date, after) = after.split_at(range.end - before.len());
+                let line = Line::from(vec![
+                    Span::raw(before),
+                    Span::styled(date, Style::default().fg(Color::Magenta)),
+                    Span::raw(after),
+                ]);
+                Paragraph::new(line)
+            } else {
+                Paragraph::new(self.input.value())
+            };
+
+            // figure the right amount to scroll the input by
             let input_rect = centered_rect(frame.size(), 50, 3, Some(2));
             let input_scroll = self.input.visual_scroll(input_rect.width as usize - 2);
             #[allow(clippy::cast_possible_truncation)]
-            let input = Paragraph::new(self.input.value())
+            let input_widget = input_widget
                 .scroll((0, input_scroll as u16))
                 .block(Block::default().title("New Todo").borders(Borders::ALL));
             frame.render_widget(Clear, input_rect);
-            frame.render_widget(input, input_rect);
+            frame.render_widget(input_widget, input_rect);
 
             #[allow(clippy::cast_possible_truncation)]
             frame.set_cursor(
