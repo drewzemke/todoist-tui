@@ -8,7 +8,7 @@ use chrono::{Local, NaiveDate};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::{Backend, Constraint, Direction, Layout},
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
     Frame,
@@ -218,9 +218,14 @@ impl<'a> App<'a> {
                 let (before, after) = self.input.value().split_at(range.start);
                 let (date, after) = after.split_at(range.end - before.len());
                 let line = Line::from(vec![
-                    Span::raw(before),
-                    Span::styled(date, Style::default().fg(Color::Magenta)),
-                    Span::raw(after),
+                    Span::styled(before, Style::default().fg(Color::White)),
+                    Span::styled(
+                        date,
+                        Style::default()
+                            .fg(Color::Magenta)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(after, Style::default().fg(Color::White)),
                 ]);
                 Paragraph::new(line)
             } else {
@@ -231,9 +236,12 @@ impl<'a> App<'a> {
             let input_rect = centered_rect(frame.size(), 50, 3, Some(2));
             let input_scroll = self.input.visual_scroll(input_rect.width as usize - 2);
             #[allow(clippy::cast_possible_truncation)]
-            let input_widget = input_widget
-                .scroll((0, input_scroll as u16))
-                .block(Block::default().title("New Todo").borders(Borders::ALL));
+            let input_widget = input_widget.scroll((0, input_scroll as u16)).block(
+                Block::default()
+                    .title("New Todo")
+                    .border_style(Style::default().fg(Color::Yellow))
+                    .borders(Borders::ALL),
+            );
             frame.render_widget(Clear, input_rect);
             frame.render_widget(input_widget, input_rect);
 
