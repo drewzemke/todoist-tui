@@ -8,4 +8,4 @@ run:
 	cargo run
 
 install:
-	cargo install --path .
+	git pull && cargo install --path .
