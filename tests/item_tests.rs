@@ -7,7 +7,8 @@ pub mod item_tests {
     use chrono::Datelike;
     use std::fs;
     use tod::model::{
-        item::{Due, DueDate, Item},
+        due_date::{Due, DueDate},
+        item::Item,
         user::User,
         Model,
     };

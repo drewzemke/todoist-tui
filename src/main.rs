@@ -8,7 +8,10 @@ use serde::{Deserialize, Serialize};
 use smart_date::FlexibleDate;
 use tod::{
     cli,
-    model::item::{Due, DueDate, Item},
+    model::{
+        due_date::{Due, DueDate},
+        item::Item,
+    },
     storage::{
         config_manager::{Auth, ConfigManager},
         file_manager::FileManager,

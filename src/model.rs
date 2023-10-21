@@ -1,6 +1,7 @@
 use self::{
     command::{AddItemArgs, Args, Command, CompleteItemArgs},
-    item::{Due, Item},
+    due_date::Due,
+    item::Item,
     project::Project,
     user::User,
 };
@@ -9,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub mod command;
+pub mod due_date;
 pub mod item;
 pub mod project;
 pub mod user;

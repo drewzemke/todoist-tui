@@ -1,4 +1,4 @@
-use super::{item::Due, project};
+use super::{due_date::Due, project};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

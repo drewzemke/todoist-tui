@@ -4,7 +4,8 @@ use super::{
     ui::centered_rect,
 };
 use crate::model::{
-    item::{Due, DueDate, Item},
+    due_date::{Due, DueDate},
+    item::Item,
     project::Project,
     Model,
 };

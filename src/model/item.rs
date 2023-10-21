@@ -1,7 +1,4 @@
-use std::fmt::Display;
-
-use super::project;
-use chrono::{NaiveDate, NaiveDateTime};
+use super::{due_date::Due, project};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -36,26 +33,5 @@ impl Item {
 
     pub fn mark_complete(&mut self, complete: bool) {
         self.checked = complete;
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-#[serde(untagged)]
-pub enum DueDate {
-    Date(NaiveDate),
-    DateTime(NaiveDateTime),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-pub struct Due {
-    pub date: DueDate,
-}
-
-impl Display for Due {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.date {
-            DueDate::Date(date) => date.fmt(f),
-            DueDate::DateTime(datetime) => datetime.fmt(f),
-        }
     }
 }

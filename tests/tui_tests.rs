@@ -11,7 +11,8 @@ pub mod tui_tests {
     use crossterm::event::KeyCode;
     use tod::{
         model::{
-            item::{Due, DueDate, Item},
+            due_date::{Due, DueDate},
+            item::Item,
             project::Project,
             Model,
         },
