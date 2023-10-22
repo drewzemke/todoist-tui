@@ -29,7 +29,7 @@ pub struct Project {
     pub id: Id,
     pub name: String,
     pub parent_id: Option<Id>,
-    pub child_order: usize,
+    pub child_order: i32,
 }
 
 impl Project {
@@ -55,7 +55,7 @@ impl Project {
     /// Sets a parent id for a project.
     /// This consumes the project and returns a new one.
     #[must_use]
-    pub fn child_order(mut self, child_order: usize) -> Self {
+    pub fn child_order(mut self, child_order: i32) -> Self {
         self.child_order = child_order;
         self
     }
