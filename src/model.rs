@@ -26,8 +26,7 @@ pub struct Model {
 
 impl Model {
     pub fn add_item(&mut self, item: &str, project_id: project::Id, due_date: Option<Due>) {
-        let mut new_item = Item::new(item, &project_id);
-        new_item.due = due_date.clone();
+        let new_item = Item::new(item, &project_id).due(due_date.clone());
 
         self.commands.push(command::Command {
             request_type: "item_add".to_string(),

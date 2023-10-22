@@ -41,6 +41,18 @@ pub struct Item {
     pub due: Option<Due>,
 }
 
+impl Default for Item {
+    fn default() -> Self {
+        Self {
+            id: Uuid::new_v4().to_string().into(),
+            project_id: Uuid::new_v4().to_string().into(),
+            content: String::new(),
+            checked: false,
+            due: None,
+        }
+    }
+}
+
 impl Item {
     /// Creates a new item with the given content and project id. Creates a random ID using `UUIDv4`.
     pub fn new<S, P>(content: S, project_id: P) -> Self
@@ -49,16 +61,23 @@ impl Item {
         P: Into<project::Id>,
     {
         Self {
-            id: Uuid::new_v4().to_string().into(),
             content: content.into(),
             project_id: project_id.into(),
-            checked: false,
-            due: None,
+            ..Default::default()
         }
     }
 
-    // TODO : builder pattern for Item
-    // like, Item::new(...).project(...).due(...)
+    #[must_use]
+    pub fn checked(mut self, checked: bool) -> Self {
+        self.mark_complete(checked);
+        self
+    }
+
+    #[must_use]
+    pub fn due(mut self, due: Option<Due>) -> Self {
+        self.due = due;
+        self
+    }
 
     pub fn mark_complete(&mut self, complete: bool) {
         self.checked = complete;
