@@ -136,10 +136,36 @@ fn render_item<'a>(item: &'a &'a Item) -> ListItem<'a> {
 
 #[must_use]
 pub fn project_list<'a>(projects: &'a [&'a Project], focused: bool) -> List {
-    let list_items: Vec<ListItem> = projects
+    let mut root_projects = Vec::from(projects);
+    // sort by child_id
+    root_projects.sort_unstable_by_key(|project: &&Project| project.child_order);
+    // top level-- only the projects without a parent
+    root_projects.retain(|project| project.parent_id.is_none());
+
+    // TODO 2022-10-21 : this needs some sort of tree structure...
+    // right now it only shows first-level children
+    //
+    // IDEA: Create a trait called `Hierarchical` or something with two methods:
+    // - `child_order()`
+    // - `parent_id()`
+    // (requires making project::Id a trait as well? so it can gel with the eventual item::Id)
+    // anyways, then we could implement some kind of "into_tree" method on that trait that
+    // takes care of both items and projects
+    // ... or just copy this code to use items, whatever
+    let list_items: Vec<ListItem> = root_projects
         .iter()
-        .map(|project| ListItem::new(&project.name[..]))
+        .flat_map(|project| {
+            let mut list = vec![ListItem::new(&project.name[..])];
+            let mut children: Vec<ListItem<'_>> = projects
+                .iter()
+                .filter(|child| child.parent_id.as_ref().is_some_and(|id| id == &project.id))
+                .map(|project| ListItem::new(format!("  {}", &project.name[..])))
+                .collect();
+            list.append(&mut children);
+            list
+        })
         .collect();
+
     let block = Block::default()
         .borders(Borders::ALL)
         .title("Projects")

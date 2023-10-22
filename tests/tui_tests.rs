@@ -211,4 +211,24 @@ pub mod tui_tests {
 
         Ok(())
     }
+
+    #[test]
+    fn show_project_hierarchy() -> Result<()> {
+        let mut model = Model::default();
+
+        let parent_project = Project::new("Parent");
+        let child_project = Project::new("Child").parent_id(&parent_project.id);
+
+        model.projects.push(parent_project);
+        model.projects.push(child_project);
+
+        let app = App::new(&mut model);
+
+        TuiTester::new(app, 100, 10)?
+            // key hints in select item mode
+            .expect_visible("Parent")?
+            .expect_visible("  Child")?;
+
+        Ok(())
+    }
 }
