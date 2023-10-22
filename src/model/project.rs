@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[allow(clippy::module_name_repetitions)]
+/// An id for a project, which is really just `String`.
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Id(String);
 
@@ -23,10 +23,13 @@ impl From<&Id> for Id {
     }
 }
 
+/// Represents a todoist project.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Project {
     pub id: Id,
     pub name: String,
+    pub parent_id: Option<Id>,
+    pub child_order: usize,
 }
 
 impl Project {
@@ -36,8 +39,35 @@ impl Project {
         S: Into<String>,
     {
         Self {
-            id: Uuid::new_v4().to_string().into(),
             name: name.into(),
+            ..Default::default()
+        }
+    }
+
+    /// Sets a parent id for a project.
+    /// This consumes the project and returns a new one.
+    #[must_use]
+    pub fn parent_id(mut self, parent_id: impl Into<Id>) -> Self {
+        self.parent_id = Some(parent_id.into());
+        self
+    }
+
+    /// Sets a parent id for a project.
+    /// This consumes the project and returns a new one.
+    #[must_use]
+    pub fn child_order(mut self, child_order: usize) -> Self {
+        self.child_order = child_order;
+        self
+    }
+}
+
+impl Default for Project {
+    fn default() -> Self {
+        Self {
+            id: Uuid::new_v4().to_string().into(),
+            name: String::new(),
+            parent_id: None,
+            child_order: 0,
         }
     }
 }
