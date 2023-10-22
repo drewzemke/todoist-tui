@@ -1,4 +1,4 @@
-use super::{due_date::Due, project};
+use super::{due_date::Due, item, project};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -28,7 +28,7 @@ pub struct AddItemArgs {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct CompleteItemArgs {
-    pub id: String,
+    pub id: item::Id,
     // TODO:
     // pub completed_date: ????,
 }

@@ -1,11 +1,40 @@
+use std::fmt::Display;
+
 use super::{due_date::Due, project};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// An id for an item, which is really just `String`.
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct Id(String);
+
+impl From<String> for Id {
+    fn from(value: String) -> Self {
+        Self(value)
+    }
+}
+
+impl From<&str> for Id {
+    fn from(value: &str) -> Self {
+        Self(value.to_string())
+    }
+}
+
+impl From<&Id> for Id {
+    fn from(value: &Id) -> Self {
+        Self(value.0.clone())
+    }
+}
+
+impl Display for Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Item {
-    // TODO: newtype
-    pub id: String,
+    pub id: Id,
     pub project_id: project::Id,
     pub content: String,
     pub checked: bool,
@@ -20,7 +49,7 @@ impl Item {
         P: Into<project::Id>,
     {
         Self {
-            id: Uuid::new_v4().to_string(),
+            id: Uuid::new_v4().to_string().into(),
             content: content.into(),
             project_id: project_id.into(),
             checked: false,

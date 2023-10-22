@@ -51,8 +51,8 @@ impl Model {
     ///
     /// # Note
     /// This no-ops if an item with the given id does not exist, so check before calling.
-    pub fn mark_item(&mut self, item_id: &str, complete: bool) {
-        let item = self.items.iter_mut().find(|item| item.id == item_id);
+    pub fn mark_item(&mut self, item_id: &item::Id, complete: bool) {
+        let item = self.items.iter_mut().find(|item| &item.id == item_id);
 
         // If nothing was found, just return
         let Some(item) = item else { return };
@@ -136,10 +136,12 @@ impl Model {
                 .into_iter()
                 .for_each(|(temp_id, real_id)| {
                     // HACK: should we do something else if we don't find a match?
-                    if let Some(matching_item) =
-                        self.items.iter_mut().find(|item| item.id == temp_id)
+                    if let Some(matching_item) = self
+                        .items
+                        .iter_mut()
+                        .find(|item| item.id == temp_id.clone().into())
                     {
-                        matching_item.id = real_id;
+                        matching_item.id = real_id.into();
                     }
                 });
 
@@ -295,7 +297,7 @@ mod tests {
         let response = Response {
             items: vec![item_updated],
             full_sync: false,
-            temp_id_mapping: HashMap::from([(item_id, "NEW_ITEM_ID".into())]),
+            temp_id_mapping: HashMap::from([(item_id.to_string(), "NEW_ITEM_ID".into())]),
             ..Default::default()
         };
 

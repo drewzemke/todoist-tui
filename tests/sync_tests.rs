@@ -94,7 +94,7 @@ pub mod sync_tests {
                     items: vec![mock_item_1.clone(), mock_item_2.clone()],
                     commands: vec![command::Command {
                         request_type: "item_add".to_owned(),
-                        temp_id: Some(mock_item_2.id.clone()),
+                        temp_id: Some(mock_item_2.id.to_string()),
                         uuid: command_uuid,
                         args: Args::AddItemCommandArgs(AddItemArgs {
                             project_id: "MOCK_INBOX_PROJECT_ID".into(),
@@ -124,8 +124,8 @@ pub mod sync_tests {
                     sync_status: Some(HashMap::from([(command_uuid, Status::Ok)])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(
-                        mock_item_2.id.clone(),
-                        mock_item_2_updated.id.clone(),
+                        mock_item_2.id.to_string(),
+                        mock_item_2_updated.id.to_string(),
                     )]),
                     user: Some(User {
                         full_name: "Drew".to_string(),
@@ -185,7 +185,7 @@ pub mod sync_tests {
                     items: vec![mock_item_1.clone(), mock_item_2.clone()],
                     commands: vec![command::Command {
                         request_type: "item_add".to_owned(),
-                        temp_id: Some(mock_item_2.id.clone()),
+                        temp_id: Some(mock_item_2.id.to_string()),
                         uuid: command_uuid,
                         args: Args::AddItemCommandArgs(AddItemArgs {
                             project_id: "MOCK_INBOX_PROJECT_ID".into(),
@@ -211,8 +211,8 @@ pub mod sync_tests {
                     sync_status: Some(HashMap::from([(command_uuid, Status::Ok)])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(
-                        mock_item_2.id.clone(),
-                        mock_item_2_updated.id.clone(),
+                        mock_item_2.id.to_string(),
+                        mock_item_2_updated.id.to_string(),
                     )]),
                     user: None,
                 },
