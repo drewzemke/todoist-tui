@@ -39,6 +39,8 @@ pub struct Item {
     pub content: String,
     pub checked: bool,
     pub due: Option<Due>,
+    pub parent_id: Option<Id>,
+    pub child_order: i32,
 }
 
 impl Default for Item {
@@ -49,6 +51,8 @@ impl Default for Item {
             content: String::new(),
             checked: false,
             due: None,
+            parent_id: None,
+            child_order: 0,
         }
     }
 }
@@ -76,6 +80,18 @@ impl Item {
     #[must_use]
     pub fn due(mut self, due: Option<Due>) -> Self {
         self.due = due;
+        self
+    }
+
+    #[must_use]
+    pub fn parent_id(mut self, parent_id: Option<Id>) -> Self {
+        self.parent_id = parent_id;
+        self
+    }
+
+    #[must_use]
+    pub fn child_order(mut self, child_order: i32) -> Self {
+        self.child_order = child_order;
         self
     }
 
