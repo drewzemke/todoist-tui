@@ -99,7 +99,26 @@ impl State {
 
 #[must_use]
 pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str, focused: bool) -> List<'a> {
-    let list_items: Vec<ListItem> = items.iter().map(render_item).collect();
+    let mut root_items = Vec::from(items);
+    // sort by child_id
+    root_items.sort_unstable_by_key(|item: &&Item| item.child_order);
+    // top level-- only the items without a parent
+    root_items.retain(|item| item.parent_id.is_none());
+
+    let list_items: Vec<ListItem> = root_items
+        .into_iter()
+        .flat_map(|item| {
+            let mut list = vec![render_item(item, false)];
+            let mut children: Vec<ListItem<'_>> = items
+                .iter()
+                .filter(|child| child.parent_id.as_ref().is_some_and(|id| id == &item.id))
+                .map(|item| render_item(item, true))
+                .collect();
+            list.append(&mut children);
+            list
+        })
+        .collect();
+
     let block = Block::default()
         .borders(Borders::ALL)
         .title(project_name)
@@ -115,8 +134,9 @@ pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str, focused: bool
     list
 }
 
-fn render_item<'a>(item: &'a &'a Item) -> ListItem<'a> {
+fn render_item(item: &Item, indent: bool) -> ListItem<'_> {
     let mut spans = vec![
+        Span::raw(if indent { "  " } else { "" }),
         Span::raw(if item.checked { "✓ " } else { "- " }),
         Span::raw(&item.content),
     ];

@@ -84,8 +84,8 @@ impl Item {
     }
 
     #[must_use]
-    pub fn parent_id(mut self, parent_id: Option<Id>) -> Self {
-        self.parent_id = parent_id;
+    pub fn parent_id(mut self, parent_id: impl Into<Id>) -> Self {
+        self.parent_id = Some(parent_id.into());
         self
     }
 

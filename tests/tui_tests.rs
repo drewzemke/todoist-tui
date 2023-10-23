@@ -231,4 +231,25 @@ pub mod tui_tests {
 
         Ok(())
     }
+
+    #[test]
+    fn show_item_hierarchy() -> Result<()> {
+        let mut model = Model::default();
+        let inbox_id = &model.user.inbox_project_id;
+
+        let parent_item = Item::new("Parent", inbox_id);
+        let child_item = Item::new("Child", inbox_id).parent_id(&parent_item.id);
+
+        model.items.push(parent_item);
+        model.items.push(child_item);
+
+        let app = App::new(&mut model);
+
+        TuiTester::new(app, 100, 10)?
+            // key hints in select item mode
+            .expect_visible("- Parent")?
+            .expect_visible("  - Child")?;
+
+        Ok(())
+    }
 }
