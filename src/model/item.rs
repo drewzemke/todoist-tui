@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::{due_date::Due, project};
+use super::{due_date::Due, project, section};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -41,6 +41,7 @@ pub struct Item {
     pub due: Option<Due>,
     pub parent_id: Option<Id>,
     pub child_order: i32,
+    pub section_id: Option<section::Id>,
 }
 
 impl Default for Item {
@@ -53,6 +54,7 @@ impl Default for Item {
             due: None,
             parent_id: None,
             child_order: 0,
+            section_id: None,
         }
     }
 }
@@ -92,6 +94,12 @@ impl Item {
     #[must_use]
     pub fn child_order(mut self, child_order: i32) -> Self {
         self.child_order = child_order;
+        self
+    }
+
+    #[must_use]
+    pub fn section_id(mut self, section_id: impl Into<section::Id>) -> Self {
+        self.section_id = Some(section_id.into());
         self
     }
 

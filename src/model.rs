@@ -3,6 +3,7 @@ use self::{
     due_date::Due,
     item::Item,
     project::Project,
+    section::Section,
     user::User,
 };
 use crate::sync::{Response, Status};
@@ -13,6 +14,7 @@ pub mod command;
 pub mod due_date;
 pub mod item;
 pub mod project;
+pub mod section;
 pub mod user;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -20,6 +22,7 @@ pub struct Model {
     pub sync_token: String,
     pub items: Vec<Item>,
     pub projects: Vec<Project>,
+    pub sections: Vec<Section>,
     pub user: User,
     pub commands: Vec<Command>,
 }
@@ -125,6 +128,11 @@ impl Model {
             self.projects = response.projects;
         }
 
+        // same thing (and same FIXME) with sections
+        if !response.sections.is_empty() {
+            self.sections = response.sections;
+        }
+
         if response.full_sync {
             // if this was a full sync, just replace the set of items
             self.items = response.items;
@@ -191,6 +199,7 @@ impl Default for Model {
             sync_token: "*".to_string(),
             items: vec![],
             projects: vec![inbox],
+            sections: vec![],
             user,
             commands: vec![],
         }

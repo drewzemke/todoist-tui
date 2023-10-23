@@ -42,6 +42,7 @@ pub mod sync_tests {
                     full_sync: true,
                     items: vec![mock_item_1, mock_item_2],
                     projects: vec![mock_project],
+                    sections: vec![],
                     sync_status: None,
                     sync_token: String::from("MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::new(),
@@ -121,6 +122,7 @@ pub mod sync_tests {
                         mock_item_3.clone(),
                     ],
                     projects: vec![],
+                    sections: vec![],
                     sync_status: Some(HashMap::from([(command_uuid, Status::Ok)])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(
@@ -208,6 +210,7 @@ pub mod sync_tests {
                     full_sync: false,
                     items: vec![],
                     projects: vec![],
+                    sections: vec![],
                     sync_status: Some(HashMap::from([(command_uuid, Status::Ok)])),
                     sync_token: String::from("NEW_MOCK_SYNC_TOKEN"),
                     temp_id_mapping: HashMap::from([(

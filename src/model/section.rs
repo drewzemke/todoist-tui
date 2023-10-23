@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// An id for a project, which is really just `String`.
+use super::project;
+
+/// An id for a section, which is really just `String`.
+// TODO: this is identical code to two other modules, is there a way to combine?
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Id(String);
 
@@ -23,52 +26,45 @@ impl From<&Id> for Id {
     }
 }
 
-/// Represents a todoist project.
+/// Represents a section inside a project.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Project {
+pub struct Section {
     pub id: Id,
     pub name: String,
-    pub parent_id: Option<Id>,
-    pub child_order: i32,
+    pub project_id: project::Id,
+    pub section_order: i32,
 }
 
-impl Project {
+impl Section {
     /// Create a new project with a given name. Generates a random uuid as an id.
-    pub fn new<S>(name: S) -> Self
+    pub fn new<S>(name: S, project_id: impl Into<project::Id>) -> Self
     where
         S: Into<String>,
     {
         Self {
             name: name.into(),
+            project_id: project_id.into(),
             ..Default::default()
         }
     }
 
-    /// Sets a parent id for a project.
-    /// This consumes the project and returns a new one.
+    /// Sets a section order for a section, which describes the order
+    /// in which it appears relative to the other sections in a project.
+    /// This consumes the section and returns a new one.
     #[must_use]
-    pub fn parent_id(mut self, parent_id: impl Into<Id>) -> Self {
-        self.parent_id = Some(parent_id.into());
-        self
-    }
-
-    /// Sets a child order for a project, which is the order in
-    /// which a project appears relative to its siblings.
-    /// This consumes the project and returns a new one.
-    #[must_use]
-    pub fn child_order(mut self, child_order: i32) -> Self {
-        self.child_order = child_order;
+    pub fn section_order(mut self, section_order: i32) -> Self {
+        self.section_order = section_order;
         self
     }
 }
 
-impl Default for Project {
+impl Default for Section {
     fn default() -> Self {
         Self {
             id: Uuid::new_v4().to_string().into(),
             name: String::new(),
-            parent_id: None,
-            child_order: 0,
+            project_id: "".into(),
+            section_order: 0,
         }
     }
 }

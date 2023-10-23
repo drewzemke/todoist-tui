@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::model::{command::Command, item::Item, project::Project, user::User};
+use crate::model::{command::Command, item::Item, project::Project, section::Section, user::User};
 
 pub mod client;
 
@@ -15,6 +15,9 @@ pub struct Response {
 
     #[serde(default)]
     pub items: Vec<Item>,
+
+    #[serde(default)]
+    pub sections: Vec<Section>,
 
     pub user: Option<User>,
 
@@ -54,6 +57,8 @@ pub enum ResourceType {
     Items,
     #[serde(rename = "projects")]
     Projects,
+    #[serde(rename = "sections")]
+    Sections,
     #[serde(rename = "user")]
     User,
 }
@@ -62,6 +67,6 @@ impl ResourceType {
     /// Returns all of the resource types that should be requested in a full sync
     #[must_use]
     pub fn all() -> Vec<Self> {
-        vec![Self::Items, Self::Projects, Self::User]
+        vec![Self::Items, Self::Projects, Self::Sections, Self::User]
     }
 }
