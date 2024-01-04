@@ -1,5 +1,9 @@
 use self::app::{App, Mode};
-use crate::{model::Model, sync::Response};
+use crate::{
+    cli,
+    storage::model_manager::ModelManager,
+    sync::{client::Client, Request, ResourceType, Response},
+};
 use anyhow::Result;
 use crossterm::{
     event::{self, poll, Event},
@@ -20,13 +24,46 @@ pub mod ui;
 
 /// # Errors
 /// Returns an error if something goes wrong during the TUI setup, execution, or teardown.
-pub fn run(model: &mut Model, receiver: &mpsc::Receiver<Response>) -> Result<()> {
-    let mut app = App::new(model);
+///
+/// # Panics
+/// This spawn a thread that can panic if something goes wrong while retreving data from the API.
+pub async fn run(model_manager: ModelManager<'_>, client: Result<Client>) -> Result<()> {
+    let mut model = model_manager.read_model()?;
+    let (sender, receiver) = mpsc::channel::<Response>();
+    if let Ok(ref client) = client {
+        let client = (*client).clone();
+        let commands = model.commands.clone();
+        let sync_token = model.sync_token.clone();
+        tokio::spawn(async move {
+            let request = Request {
+                sync_token,
+                resource_types: ResourceType::all(),
+                commands,
+            };
+
+            // FIXME: Need a way (maybe another channel) to communicate to the UI
+            // that the sync failed
+            let response = client
+                .make_request(&request)
+                .await
+                .expect("Error occurred during full sync.");
+            sender
+                .send(response)
+                .expect("Error occurred while processing server response.");
+        });
+    }
+
+    let receiver = &receiver;
+    let mut app = App::new(&mut model);
 
     let mut terminal = setup_terminal()?;
     run_main_loop(&mut terminal, &mut app, receiver)?;
     restore_terminal(&mut terminal)?;
 
+    if !model.commands.is_empty() {
+        cli::sync(&mut model, &client?, true).await?;
+    }
+    model_manager.write_model(&model)?;
     Ok(())
 }
 
