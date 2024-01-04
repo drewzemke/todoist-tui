@@ -195,6 +195,7 @@ impl<'a> App<'a> {
             let item_list = item_list(
                 &items,
                 &selected_project.name,
+                &self.model.sections,
                 self.mode == Mode::SelectingItems,
             );
             frame.render_stateful_widget(item_list, main_right, &mut self.item_list_state.state);

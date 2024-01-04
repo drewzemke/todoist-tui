@@ -14,6 +14,7 @@ pub mod tui_tests {
             due_date::{Due, DueDate},
             item::Item,
             project::Project,
+            section::Section,
             Model,
         },
         tui::app::App,
@@ -225,7 +226,6 @@ pub mod tui_tests {
         let app = App::new(&mut model);
 
         TuiTester::new(app, 100, 10)?
-            // key hints in select item mode
             .expect_visible("Parent")?
             .expect_visible("  Child")?;
 
@@ -246,9 +246,34 @@ pub mod tui_tests {
         let app = App::new(&mut model);
 
         TuiTester::new(app, 100, 10)?
-            // key hints in select item mode
             .expect_visible("- Parent")?
             .expect_visible("  - Child")?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn show_items_in_sections() -> Result<()> {
+        let mut model = Model::default();
+        let project = Project::new("Project");
+        let section = Section::new("Section", &project.id);
+
+        let item1 = Item::new("item in sec", &project.id).section_id(&section.id);
+        let item2 = Item::new("item not in sec", &project.id);
+
+        model.projects.push(project);
+        model.sections.push(section);
+        model.items.push(item1);
+        model.items.push(item2);
+
+        let app = App::new(&mut model);
+
+        TuiTester::new(app, 100, 10)?
+            // tab to move focus to the projects panel
+            .type_key(KeyCode::Tab)
+            // down to select the first project
+            .type_key(KeyCode::Down)
+            .expect_visible("Section")?;
 
         Ok(())
     }

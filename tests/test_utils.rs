@@ -157,7 +157,6 @@ mod tui_tester {
             Ok(self)
         }
 
-        // TODO: throw in new lines and other chars to get this to pretty print?
         fn render_to_string(&mut self) -> Result<String> {
             self.terminal.draw(|frame| {
                 self.app.render(frame);
@@ -174,7 +173,7 @@ mod tui_tester {
                 .fold(String::new(), |mut string, (index, cell)| {
                     let _ = write!(string, "{}", cell.symbol);
                     if (index + 1) % width == 0 {
-                        let _ = write!(string, "\n");
+                        let _ = writeln!(string);
                     }
                     string
                 });

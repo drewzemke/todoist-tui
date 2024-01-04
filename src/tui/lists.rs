@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, ListState},
 };
 
-use crate::model::{item::Item, project::Project};
+use crate::model::{item::Item, project::Project, section::Section};
 
 #[derive(Default)]
 pub struct State {
@@ -97,26 +97,36 @@ impl State {
     }
 }
 
+// TODO 2023-10-22 : this needs a serious refactor...
+// - We should have the model to this data processing, not the render function
+// - Model should store the currently selected element (section, item, etc) and know how to advance the selection up and down
+// - Model should also sort everything appropriately (maybe on startup, and when things change), so we don't need to sort per-render
 #[must_use]
-pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str, focused: bool) -> List<'a> {
-    let mut root_items = Vec::from(items);
-    // sort by child_id
-    root_items.sort_unstable_by_key(|item: &&Item| item.child_order);
-    // top level-- only the items without a parent
-    root_items.retain(|item| item.parent_id.is_none());
+pub fn item_list<'a>(
+    items: &'a [&'a Item],
+    project_name: &'a str,
+    sections: &'a Vec<Section>,
+    focused: bool,
+) -> List<'a> {
+    let items_grouped_by_section = {
+        let mut sectionless_items = Vec::from(items);
+        sectionless_items.retain(|item| item.section_id.is_none());
 
-    let list_items: Vec<ListItem> = root_items
+        let mut item_groups = vec![(None, sectionless_items)];
+        for section in sections {
+            let mut items_in_section = Vec::from(items);
+            items_in_section
+                .retain(|item| item.section_id.as_ref().is_some_and(|id| id == &section.id));
+            if !items_in_section.is_empty() {
+                item_groups.push((Some(section), items_in_section));
+            }
+        }
+        item_groups
+    };
+
+    let list_items: Vec<ListItem<'_>> = items_grouped_by_section
         .into_iter()
-        .flat_map(|item| {
-            let mut list = vec![render_item(item, false)];
-            let mut children: Vec<ListItem<'_>> = items
-                .iter()
-                .filter(|child| child.parent_id.as_ref().is_some_and(|id| id == &item.id))
-                .map(|item| render_item(item, true))
-                .collect();
-            list.append(&mut children);
-            list
-        })
+        .flat_map(|(section, items)| render_items_in_section(section, &items))
         .collect();
 
     let block = Block::default()
@@ -132,6 +142,38 @@ pub fn item_list<'a>(items: &'a [&'a Item], project_name: &'a str, focused: bool
         )
         .block(block);
     list
+}
+
+#[must_use]
+fn render_items_in_section<'a>(
+    section: Option<&'a Section>,
+    items: &[&'a Item],
+) -> Vec<ListItem<'a>> {
+    let mut root_items: Vec<_> = items.into();
+    // sort by child_id
+    root_items.sort_unstable_by_key(|item: &&Item| item.child_order);
+    // top level-- only the items without a parent
+    root_items.retain(|item| item.parent_id.is_none());
+
+    let mut list_items: Vec<_> = root_items
+        .into_iter()
+        .flat_map(|item| {
+            let mut list = vec![render_item(item, false)];
+            let mut children: Vec<ListItem<'_>> = items
+                .iter()
+                .filter(|child| child.parent_id.as_ref().is_some_and(|id| id == &item.id))
+                .map(|item| render_item(item, true))
+                .collect();
+            list.append(&mut children);
+            list
+        })
+        .collect();
+
+    if let Some(section) = section {
+        list_items.insert(0, ListItem::new(format!("\n{}", section.name.clone())));
+    }
+
+    list_items
 }
 
 fn render_item(item: &Item, indent: bool) -> ListItem<'_> {
