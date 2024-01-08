@@ -12,10 +12,11 @@ pub struct Client {
 
 impl Client {
     #[must_use]
-    pub fn new(api_token: String, sync_url_override: Option<String>) -> Self {
+    pub fn new(api_token: &str, sync_url_override: Option<&str>) -> Self {
         Client {
-            sync_url: sync_url_override.unwrap_or(SYNC_URL.to_string()),
-            api_token,
+            sync_url: sync_url_override
+                .map_or(SYNC_URL.to_string(), std::string::ToString::to_string),
+            api_token: api_token.to_string(),
             client: reqwest::Client::new(),
         }
     }

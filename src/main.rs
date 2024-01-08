@@ -20,16 +20,15 @@ struct Config {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    // FIXME: I feel like I shouldn't have to clone here (and a few lines down)
-    let file_manager = FileManager::init(args.local_dir_override.clone())?;
+    let file_manager = FileManager::init(args.local_dir_override.as_deref())?;
     let config_manager = ConfigManager::new(&file_manager);
     let model_manager = ModelManager::new(&file_manager);
 
     let client = config_manager
         .get_api_token()
-        .map(|token| Client::new(token, args.sync_url_override.clone()));
+        .map(|token| Client::new(&token, args.sync_url_override.as_deref()));
 
-    if let Some(command) = args.clone().command {
+    if let Some(ref command) = args.command.clone() {
         cli::handle_command(command, args, model_manager, client, config_manager).await?;
     } else {
         tui::run(model_manager, client).await?;

@@ -103,7 +103,7 @@ pub fn complete_item(number: usize, model: &mut Model) -> Result<()> {
 ///
 /// Returns an error if something goes awry while processing the command.
 pub async fn handle_command(
-    command: Command,
+    command: &Command,
     args: Args,
     model_manager: ModelManager<'_>,
     client: Result<Client>,
@@ -116,8 +116,8 @@ pub async fn handle_command(
                 .datetime_override
                 .unwrap_or(Local::now().naive_local())
                 .date();
-            let due_date = due.and_then(|due| {
-                Due::parse_from_str(&due, today).and_then(|(date, range)| {
+            let due_date = due.as_ref().and_then(|due| {
+                Due::parse_from_str(due, today).and_then(|(date, range)| {
                     // reject the due date if it didn't parse exactly
                     if range == (0..due.len()) {
                         Some(date)
@@ -128,7 +128,7 @@ pub async fn handle_command(
             });
 
             let mut model = model_manager.read_model()?;
-            model.add_item_to_inbox(&todo, due_date);
+            model.add_item_to_inbox(todo, due_date);
             println!("'{todo}' added to inbox.");
             if !no_sync {
                 sync(&mut model, &client?, true).await?;
@@ -138,7 +138,7 @@ pub async fn handle_command(
 
         Command::CompleteTodo { number, no_sync } => {
             let mut model = model_manager.read_model()?;
-            complete_item(number, &mut model)?;
+            complete_item(*number, &mut model)?;
             if !no_sync {
                 sync(&mut model, &client?, true).await?;
             }
@@ -160,13 +160,15 @@ pub async fn handle_command(
         }
 
         Command::SetApiToken { token } => {
-            config_manager.write_auth_config(&Auth { api_token: token })?;
+            config_manager.write_auth_config(&Auth {
+                api_token: token.clone(),
+            })?;
             println!("Stored API token.");
         }
 
         Command::Sync { incremental } => {
             let mut model = model_manager.read_model()?;
-            sync(&mut model, &client?, incremental).await?;
+            sync(&mut model, &client?, *incremental).await?;
             model_manager.write_model(&model)?;
         }
     };

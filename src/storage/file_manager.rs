@@ -14,7 +14,7 @@ impl FileManager {
     /// # Errors
     ///
     /// Returns an error if the local data directory cannot be found.
-    pub fn init(data_dir_override: Option<String>) -> Result<Self> {
+    pub fn init(data_dir_override: Option<&str>) -> Result<Self> {
         let data_dir = if let Some(dir) = data_dir_override {
             PathBuf::from(dir)
         } else if let Some(dir) = dirs::data_local_dir() {
