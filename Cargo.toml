@@ -11,7 +11,7 @@ chrono = { version = "0.4.31", features = ["serde"] }
 clap = { version = "4.3.8", features = ["derive"] }
 crossterm = "0.27.0"
 dirs = "5.0.1"
-ratatui = { version = "0.23.0", features = ["all-widgets"] }
+ratatui = { version = "0.25", features = ["all-widgets"] }
 reqwest = { version = "0.11.18", features = ["blocking", "json"] }
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.99"
@@ -19,6 +19,7 @@ smart-date = { git = "https://github.com/drewzemke/smart-date.git" }
 tokio = { version = "1.28.2", features = ["full"] }
 toml = "0.7.5"
 tui-input = "0.8.0"
+tui-tree-widget = "0.16.0"
 uuid = { version = "1.4.0", features = ["v4", "serde"] }
 
 [dev-dependencies]

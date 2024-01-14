@@ -99,7 +99,7 @@ pub use tui_tester::TuiTester;
 mod tui_tester {
     use anyhow::Result;
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use ratatui::{backend::TestBackend, Terminal};
+    use ratatui::{backend::TestBackend, buffer::Cell, Terminal};
     use std::fmt::Write;
     use tod::tui::app::{App, Mode};
 
@@ -171,7 +171,7 @@ mod tui_tester {
                 .iter()
                 .enumerate()
                 .fold(String::new(), |mut string, (index, cell)| {
-                    let _ = write!(string, "{}", cell.symbol);
+                    let _ = write!(string, "{}", Cell::symbol(cell));
                     if (index + 1) % width == 0 {
                         let _ = writeln!(string);
                     }

@@ -1,13 +1,14 @@
 use super::{
     key_hints::KeyHint,
-    lists::{item_list, project_list, State as ListState},
+    lists::{item_list, State as ListState},
+    projects_pane::ProjectTree,
     ui::centered_rect,
 };
-use crate::model::{due_date::Due, item::Item, project::Project, Model};
+use crate::model::{due_date::Due, item::Item, Model};
 use chrono::{Local, NaiveDate};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
-    prelude::{Backend, Constraint, Direction, Layout},
+    prelude::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph},
@@ -29,21 +30,24 @@ pub struct App<'a> {
     pub model: &'a mut Model,
     input: Input,
     item_list_state: ListState,
-    project_list_state: ListState,
     today: NaiveDate,
+    project_tree: ProjectTree<'a>,
 }
 
 impl<'a> App<'a> {
+    /// # Panics
+    /// If the model contains projects or items with duplicate ids
     pub fn new(model: &'a mut Model) -> Self {
         let num_items = model.get_inbox_items(false).len();
-        let num_projects = model.projects.len();
+        let project_tree = ProjectTree::new(&model.projects);
+
         Self {
             mode: Mode::SelectingItems,
             model,
             input: Input::default(),
             item_list_state: ListState::with_length(num_items),
-            project_list_state: ListState::new(num_projects, 0),
             today: Local::now().date_naive(),
+            project_tree,
         }
     }
 
@@ -61,18 +65,9 @@ impl<'a> App<'a> {
         self.item_list_state.set_length(num_items);
     }
 
-    fn selected_project(&self) -> Option<&Project> {
-        let projects = self.model.projects();
-        self.project_list_state
-            .selected_index()
-            .map(|index| projects[index])
-    }
-
     fn items_in_selected_project(&self) -> Vec<&Item> {
-        let projects = self.model.projects();
-        self.project_list_state
-            .selected_index()
-            .map(|index| projects[index])
+        self.project_tree
+            .selected_project(&self.model.projects)
             .map(|project| self.model.get_items_in_project(&project.id))
             .unwrap_or_default()
     }
@@ -101,29 +96,30 @@ impl<'a> App<'a> {
                 }
                 _ => {}
             },
-            Mode::SelectingProjects => match key.code {
-                KeyCode::Char('a') => {
-                    self.mode = Mode::AddingItem;
+            Mode::SelectingProjects => {
+                match key.code {
+                    KeyCode::Char('a') => {
+                        self.mode = Mode::AddingItem;
+                    }
+                    KeyCode::Char('q') => {
+                        self.mode = Mode::Exiting;
+                    }
+                    KeyCode::Tab => {
+                        self.mode = Mode::SelectingItems;
+                    }
+                    _ => {
+                        self.project_tree.handle_key(key);
+                    }
                 }
-                KeyCode::Char('q') => {
-                    self.mode = Mode::Exiting;
-                }
-                KeyCode::Up | KeyCode::Down => {
-                    self.project_list_state.handle_key(key);
-                    self.update_state();
-                }
-                KeyCode::Tab | KeyCode::Right => {
-                    self.mode = Mode::SelectingItems;
-                }
-                _ => {}
-            },
+                self.update_state();
+            }
             Mode::AddingItem => match key.code {
                 KeyCode::Esc => {
                     self.mode = Mode::SelectingItems;
                     self.input.reset();
                 }
                 KeyCode::Enter => {
-                    let selected_project = self.selected_project();
+                    let selected_project = self.project_tree.selected_project(&self.model.projects);
                     if let Some(selected_project) = selected_project {
                         let project_id = selected_project.id.clone();
 
@@ -164,7 +160,10 @@ impl<'a> App<'a> {
     ///
     /// # Errors
     /// Returns an error if something goes wrong during the render process.
-    pub fn render<'b, B: Backend + 'b>(&mut self, frame: &mut Frame<'b, B>) {
+    ///
+    /// # Panics
+    /// If the model contains projects or items with duplicate ids
+    pub fn render(&mut self, frame: &mut Frame<'_>) {
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(3), Constraint::Max(1)])
@@ -180,26 +179,21 @@ impl<'a> App<'a> {
         let main_right = main_panel_layout[1];
 
         // render the project list
-        let projects = self.model.projects();
-        let project_list = project_list(&projects, self.mode == Mode::SelectingProjects);
-        frame.render_stateful_widget(project_list, main_left, &mut self.project_list_state.state);
+        let project_tree = self.project_tree.tree(self.mode == Mode::SelectingProjects);
+        let project_state = self.project_tree.state_mut();
+        frame.render_stateful_widget(project_tree, main_left, project_state);
 
         // render the item list
-        let selected_project = self
-            .project_list_state
-            .selected_index()
-            // TODO: use `get` here
-            .map(|index| projects[index]);
-        if let Some(selected_project) = selected_project {
-            let items = self.model.get_items_in_project(&selected_project.id);
-            let item_list = item_list(
-                &items,
-                &selected_project.name,
-                &self.model.sections,
-                self.mode == Mode::SelectingItems,
-            );
-            frame.render_stateful_widget(item_list, main_right, &mut self.item_list_state.state);
-        }
+        let items = self.items_in_selected_project();
+        let item_list = item_list(
+            &items,
+            "PROJECT NAME",
+            &self.model.sections,
+            self.mode == Mode::SelectingItems,
+        );
+        // TODO: make trees for items, then resolve this borrow issue
+        // frame.render_stateful_widget(item_list, main_right, &mut self.item_list_state.state);
+        frame.render_widget(item_list, main_right);
 
         // render the key hints
         let key_hints = KeyHint::from_mode(&self.mode);

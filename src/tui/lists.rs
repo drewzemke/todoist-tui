@@ -1,7 +1,7 @@
 use crossterm::event::{self, KeyCode};
 use ratatui::{
     style::{Color, Modifier, Style},
-    text::{Line, Span},
+    text::{Line, Span, Text},
     widgets::{Block, Borders, List, ListItem, ListState},
 };
 
@@ -241,4 +241,10 @@ pub fn project_list<'a>(projects: &'a [&'a Project], focused: bool) -> List {
         )
         .block(block);
     list
+}
+
+impl From<&Project> for Text<'static> {
+    fn from(project: &Project) -> Self {
+        project.name.clone().into()
+    }
 }
