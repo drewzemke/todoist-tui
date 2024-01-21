@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const APP_DATA_DIR_NAME: &str = "tuido";
+const APP_DATA_DIR_NAME: &str = "todoist-tui";
 
 pub struct FileManager {
     data_dir: PathBuf,
