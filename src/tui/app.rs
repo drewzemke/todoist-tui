@@ -5,7 +5,7 @@ use super::{
     projects_pane::ProjectTree,
     ui::centered_rect,
 };
-use crate::model::{item::Item, Model};
+use crate::model::{item::Item, project::Project, Model};
 use chrono::{Local, NaiveDate};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
@@ -56,6 +56,15 @@ impl<'a> App<'a> {
         }
     }
 
+    fn selected_project(&self) -> Option<&Project> {
+        self.project_tree.selected().and_then(|project_id| {
+            self.model
+                .projects
+                .iter()
+                .find(|project| project.id == project_id)
+        })
+    }
+
     /// Updates the inner state of model after the model changes.
     pub fn update_state(&mut self) {
         let num_items = self.items_in_selected_project().len();
@@ -63,8 +72,7 @@ impl<'a> App<'a> {
     }
 
     fn items_in_selected_project(&self) -> Vec<&Item> {
-        self.project_tree
-            .selected_project(&self.model.projects)
+        self.selected_project()
             .map(|project| self.model.get_items_in_project(&project.id))
             .unwrap_or_default()
     }
@@ -116,7 +124,7 @@ impl<'a> App<'a> {
                     self.item_input.reset();
                 }
                 KeyCode::Enter => {
-                    let selected_project = self.project_tree.selected_project(&self.model.projects);
+                    let selected_project = self.selected_project();
                     if let Some(selected_project) = selected_project {
                         let project_id = selected_project.id.clone();
 
@@ -161,7 +169,8 @@ impl<'a> App<'a> {
         let items = self.items_in_selected_project();
         let item_list = item_list(
             &items,
-            "PROJECT NAME",
+            self.selected_project()
+                .map_or("", |project| &project.name[..]),
             &self.model.sections,
             self.mode == Mode::SelectingItems,
         );

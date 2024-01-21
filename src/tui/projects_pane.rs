@@ -50,11 +50,8 @@ impl<'a> ProjectTree<'a> {
             .collect()
     }
 
-    pub fn selected_project(&self, projects: &'a [Project]) -> Option<&'a Project> {
-        self.state
-            .selected()
-            .last()
-            .and_then(|project_id| projects.iter().find(|project| project.id == *project_id))
+    pub fn selected(&self) -> Option<Id> {
+        self.state.selected().into_iter().last()
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
