@@ -8,13 +8,13 @@ use ratatui::{
 };
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
-pub struct ProjectsState<'a> {
+pub struct State<'a> {
     tree_items: Vec<TreeItem<'a, ProjectId>>,
-    state: TreeState<ProjectId>,
+    tree: TreeState<ProjectId>,
     default_project_id: ProjectId,
 }
 
-impl<'a> ProjectsState<'a> {
+impl<'a> State<'a> {
     //  HACK?
     /// # Panics
     /// If the list of projects is empty.
@@ -37,7 +37,7 @@ impl<'a> ProjectsState<'a> {
 
         Self {
             tree_items,
-            state,
+            tree: state,
             default_project_id: first_project.id.clone(),
         }
     }
@@ -64,7 +64,7 @@ impl<'a> ProjectsState<'a> {
     }
 
     pub fn selected(&self) -> ProjectId {
-        self.state
+        self.tree
             .selected()
             .into_iter()
             .last()
@@ -73,22 +73,22 @@ impl<'a> ProjectsState<'a> {
 
     pub fn handle_key(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Char('\n' | ' ') => self.state.toggle_selected(),
-            KeyCode::Left => self.state.key_left(),
-            KeyCode::Right => self.state.key_right(),
-            KeyCode::Down => self.state.key_down(&self.tree_items),
-            KeyCode::Up => self.state.key_up(&self.tree_items),
+            KeyCode::Char('\n' | ' ') => self.tree.toggle_selected(),
+            KeyCode::Left => self.tree.key_left(),
+            KeyCode::Right => self.tree.key_right(),
+            KeyCode::Down => self.tree.key_down(&self.tree_items),
+            KeyCode::Up => self.tree.key_up(&self.tree_items),
             _ => {}
         }
     }
 }
 
 #[derive(Debug, Default)]
-pub struct ProjectsPane<'a> {
+pub struct Pane<'a> {
     marker: std::marker::PhantomData<AppState<'a>>,
 }
 
-impl<'a> StatefulWidget for ProjectsPane<'a> {
+impl<'a> StatefulWidget for Pane<'a> {
     type State = AppState<'a>;
 
     /// Renders the app state into a terminal frame.
@@ -117,6 +117,6 @@ impl<'a> StatefulWidget for ProjectsPane<'a> {
                     .add_modifier(Modifier::BOLD),
             );
 
-        tree.render(area, buf, &mut state.projects.state);
+        tree.render(area, buf, &mut state.projects.tree);
     }
 }

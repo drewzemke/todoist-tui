@@ -3,7 +3,7 @@ use super::{
     item_input::ItemInput,
     items_pane::{ItemTree, ItemTreeState},
     key_hints::{self},
-    projects_pane::{ProjectsPane, ProjectsState},
+    projects::{self, State},
     ui::centered_rect,
 };
 use crate::model::{item::Item, project::Project, Model};
@@ -27,7 +27,7 @@ impl<'a> App<'a> {
     /// # Panics
     /// If the model contains projects or items with duplicate ids
     pub fn new(model: &'a mut Model) -> Self {
-        let project_state = ProjectsState::new(&model.projects);
+        let project_state = State::new(&model.projects);
         let selected_project_id = project_state.selected();
         let selected_project = model
             .project_with_id(&selected_project_id)
@@ -39,7 +39,7 @@ impl<'a> App<'a> {
         item_tree_state.set_focused(true);
 
         let state = AppState {
-            projects: ProjectsState::new(&model.projects),
+            projects: State::new(&model.projects),
             mode: Mode::SelectingItems,
         };
 
@@ -167,7 +167,7 @@ impl<'a> App<'a> {
         let main_right = main_panel_layout[1];
 
         // projects pane
-        frame.render_stateful_widget(ProjectsPane::default(), main_left, &mut self.state);
+        frame.render_stateful_widget(projects::Pane::default(), main_left, &mut self.state);
 
         // item list
         frame.render_stateful_widget(

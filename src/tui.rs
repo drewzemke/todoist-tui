@@ -22,7 +22,7 @@ pub mod app_state;
 mod item_input;
 mod items_pane;
 mod key_hints;
-mod projects_pane;
+mod projects;
 mod section_widget;
 mod ui;
 
