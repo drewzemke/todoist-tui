@@ -3,7 +3,7 @@ use ratatui::{
     text::Span,
 };
 
-use super::app::Mode;
+use super::app_state::Mode;
 
 pub struct KeyHint {
     pub key: String,

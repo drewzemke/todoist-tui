@@ -1,5 +1,5 @@
 use super::{
-    app_state::AppState,
+    app_state::{AppState, Mode},
     item_input::ItemInput,
     items_pane::{ItemTree, ItemTreeState},
     key_hints::KeyHint,
@@ -16,22 +16,13 @@ use ratatui::{
     Frame,
 };
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Mode {
-    AddingItem,
-    SelectingItems,
-    SelectingProjects,
-    Exiting,
-}
-
 /// Manages the UI state and data model
 pub struct App<'a> {
     pub model: &'a mut Model,
-    pub mode: Mode,
+    pub state: AppState<'a>,
     item_input: ItemInput,
     item_tree: ItemTree<'a>,
     item_tree_state: ItemTreeState,
-    state: AppState<'a>,
 }
 
 impl<'a> App<'a> {
@@ -51,10 +42,10 @@ impl<'a> App<'a> {
 
         let state = AppState {
             projects: ProjectsState::new(&model.projects),
+            mode: Mode::SelectingItems,
         };
 
         Self {
-            mode: Mode::SelectingItems,
             model,
             item_input: ItemInput::new(Local::now().date_naive()),
             item_tree,
@@ -90,23 +81,24 @@ impl<'a> App<'a> {
         let item_tree = ItemTree::new(&self.model.items, &self.model.sections, selected_project);
         let mut item_tree_state =
             ItemTreeState::new(&self.model.items, &self.model.sections, selected_project);
-        item_tree_state.set_focused(self.mode == Mode::SelectingItems);
+        item_tree_state.set_focused(self.state.mode == Mode::SelectingItems);
         self.item_tree = item_tree;
         self.item_tree_state = item_tree_state;
     }
 
     /// Manages how the whole app reacts to an individual user keypress.
+    // TODO: move into `app_state` module
     pub fn handle_key(&mut self, key: event::KeyEvent) {
-        match self.mode {
+        match self.state.mode {
             Mode::SelectingItems => match key.code {
                 KeyCode::Char('a') => {
-                    self.mode = Mode::AddingItem;
+                    self.state.mode = Mode::AddingItem;
                 }
                 KeyCode::Char('q') => {
-                    self.mode = Mode::Exiting;
+                    self.state.mode = Mode::Exiting;
                 }
                 KeyCode::Tab => {
-                    self.mode = Mode::SelectingProjects;
+                    self.state.mode = Mode::SelectingProjects;
                     self.item_tree_state.set_focused(false);
                 }
                 KeyCode::Char(' ') => {
@@ -122,13 +114,13 @@ impl<'a> App<'a> {
             Mode::SelectingProjects => {
                 match key.code {
                     KeyCode::Char('a') => {
-                        self.mode = Mode::AddingItem;
+                        self.state.mode = Mode::AddingItem;
                     }
                     KeyCode::Char('q') => {
-                        self.mode = Mode::Exiting;
+                        self.state.mode = Mode::Exiting;
                     }
                     KeyCode::Tab => {
-                        self.mode = Mode::SelectingItems;
+                        self.state.mode = Mode::SelectingItems;
                         self.item_tree_state.set_focused(true);
                     }
                     _ => {
@@ -139,7 +131,7 @@ impl<'a> App<'a> {
             }
             Mode::AddingItem => match key.code {
                 KeyCode::Esc => {
-                    self.mode = Mode::SelectingItems;
+                    self.state.mode = Mode::SelectingItems;
                     self.item_input.reset();
                 }
                 KeyCode::Enter => {
@@ -149,7 +141,7 @@ impl<'a> App<'a> {
 
                     self.model.add_item(content.trim(), project_id, due_date);
                     self.update_state();
-                    self.mode = Mode::SelectingItems;
+                    self.state.mode = Mode::SelectingItems;
                     self.item_input.reset();
                 }
                 _ => {
@@ -187,7 +179,7 @@ impl<'a> App<'a> {
         );
 
         // key hints
-        let key_hints = KeyHint::from_mode(&self.mode);
+        let key_hints = KeyHint::from_mode(&self.state.mode);
         let key_hint_line: Line = Line::from(
             key_hints
                 .into_iter()
@@ -197,7 +189,7 @@ impl<'a> App<'a> {
         frame.render_widget(Paragraph::new(key_hint_line), bottom_panel);
 
         // input bar (if adding something)
-        if self.mode == Mode::AddingItem {
+        if self.state.mode == Mode::AddingItem {
             let input_rect = centered_rect(frame.size(), 50, 3, Some(2));
             frame.render_widget(self.item_input.clone(), input_rect);
             let cursor_position = self.item_input.cursor_position(input_rect);

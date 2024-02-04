@@ -1,4 +1,4 @@
-use super::app_state::AppState;
+use super::app_state::{AppState, Mode};
 use crate::model::project::{Id as ProjectId, Project};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
@@ -96,8 +96,7 @@ impl<'a> StatefulWidget for ProjectsPane<'a> {
     /// # Panics
     /// If the model contains projects with duplicate ids
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        // TODO: move into state
-        let focused = false;
+        let focused = state.mode == Mode::SelectingProjects;
 
         let tree = Tree::new(state.projects.tree_items.clone())
             .expect("Project ids must be unique")

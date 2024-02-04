@@ -1,4 +1,4 @@
-use self::app::{App, Mode};
+use self::{app::App, app_state::Mode};
 use crate::{
     cli,
     storage::model_manager::ModelManager,
@@ -18,7 +18,7 @@ use std::{
 };
 
 pub mod app;
-mod app_state;
+pub mod app_state;
 mod item_input;
 mod items_pane;
 mod key_hints;
@@ -106,7 +106,7 @@ fn run_main_loop(
         if poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
                 app.handle_key(key);
-                if app.mode == Mode::Exiting {
+                if app.state.mode == Mode::Exiting {
                     return Ok(());
                 }
             }

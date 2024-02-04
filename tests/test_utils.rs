@@ -101,7 +101,8 @@ mod tui_tester {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ratatui::{backend::TestBackend, buffer::Cell, Terminal};
     use std::fmt::Write;
-    use tod::tui::app::{App, Mode};
+    use tod::tui::app::App;
+    use tod::tui::app_state::Mode;
 
     // TODO: make this generic? just for fun I guess
     pub struct TuiTester<'a> {
@@ -185,7 +186,7 @@ mod tui_tester {
         /// # Panics
         /// If it isn't.
         pub fn expect_exiting(&self) {
-            assert_eq!(self.app.mode, Mode::Exiting);
+            assert_eq!(self.app.state.mode, Mode::Exiting);
         }
 
         /// Sends the characters in the given string as individual keypresses to the app.
