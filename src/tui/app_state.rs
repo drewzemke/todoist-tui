@@ -1,4 +1,4 @@
-use crate::tui::projects::State;
+use super::widgets::projects;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
@@ -9,6 +9,6 @@ pub enum Mode {
 }
 
 pub struct AppState<'a> {
-    pub projects: State<'a>,
+    pub projects: projects::State<'a>,
     pub mode: Mode,
 }

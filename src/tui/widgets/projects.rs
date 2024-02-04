@@ -1,5 +1,7 @@
-use super::app_state::{AppState, Mode};
-use crate::model::project::{Id as ProjectId, Project};
+use crate::{
+    model::project::{Id as ProjectId, Project},
+    tui::app_state::{AppState, Mode},
+};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     prelude::{Buffer, Rect},
@@ -19,7 +21,29 @@ impl<'a> State<'a> {
     /// # Panics
     /// If the list of projects is empty.
     pub fn new(projects: &'_ [Project]) -> Self {
-        let tree_items = Self::build_tree(projects, None);
+        // recursive helper function
+        fn build_tree<'b>(
+            projects: &'_ [Project],
+            parent_id: Option<&ProjectId>,
+        ) -> Vec<TreeItem<'b, ProjectId>> {
+            projects
+                .iter()
+                .filter_map(|project| {
+                    if project.parent_id.as_ref() == parent_id {
+                        // TODO : sort by `project.child_order`
+                        let children = build_tree(projects, Some(&project.id));
+                        Some(
+                            TreeItem::new(project.id.clone(), project.name.clone(), children)
+                                .expect("Project ids must be unique"),
+                        )
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        }
+
+        let tree_items = build_tree(projects, None);
         let mut state = TreeState::default();
         for project in projects {
             if !project.collapsed {
@@ -40,27 +64,6 @@ impl<'a> State<'a> {
             tree: state,
             default_project_id: first_project.id.clone(),
         }
-    }
-
-    fn build_tree<'b>(
-        projects: &'_ [Project],
-        parent_id: Option<&ProjectId>,
-    ) -> Vec<TreeItem<'b, ProjectId>> {
-        projects
-            .iter()
-            .filter_map(|project| {
-                if project.parent_id.as_ref() == parent_id {
-                    // TODO : sort by `project.child_order`
-                    let children = Self::build_tree(projects, Some(&project.id));
-                    Some(
-                        TreeItem::new(project.id.clone(), project.name.clone(), children)
-                            .expect("Project ids must be unique"),
-                    )
-                } else {
-                    None
-                }
-            })
-            .collect()
     }
 
     pub fn selected(&self) -> ProjectId {
@@ -84,11 +87,11 @@ impl<'a> State<'a> {
 }
 
 #[derive(Debug, Default)]
-pub struct Pane<'a> {
+pub struct Widget<'a> {
     marker: std::marker::PhantomData<AppState<'a>>,
 }
 
-impl<'a> StatefulWidget for Pane<'a> {
+impl<'a> StatefulWidget for Widget<'a> {
     type State = AppState<'a>;
 
     /// Renders the app state into a terminal frame.

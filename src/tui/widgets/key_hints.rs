@@ -1,9 +1,9 @@
-use super::app_state::{AppState, Mode};
+use crate::tui::app_state::{AppState, Mode};
 use ratatui::{
     prelude::{Buffer, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Paragraph, StatefulWidget, Widget},
+    widgets::{Paragraph, StatefulWidget, Widget as RatatuiWidget},
 };
 
 pub struct KeyHint {
@@ -57,11 +57,11 @@ impl<'a> From<KeyHint> for Vec<Span<'a>> {
 }
 
 #[derive(Debug, Default)]
-pub struct Pane<'a> {
+pub struct Widget<'a> {
     marker: std::marker::PhantomData<AppState<'a>>,
 }
 
-impl<'a> StatefulWidget for Pane<'a> {
+impl<'a> StatefulWidget for Widget<'a> {
     type State = AppState<'a>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
