@@ -2,7 +2,7 @@ use super::{
     app_state::{AppState, Mode},
     item_input::ItemInput,
     items_pane::{ItemTree, ItemTreeState},
-    key_hints::KeyHint,
+    key_hints::{self},
     projects_pane::{ProjectsPane, ProjectsState},
     ui::centered_rect,
 };
@@ -11,8 +11,6 @@ use chrono::{Local, NaiveDate};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     prelude::{Constraint, Direction, Layout},
-    text::{Line, Span},
-    widgets::Paragraph,
     Frame,
 };
 
@@ -179,14 +177,7 @@ impl<'a> App<'a> {
         );
 
         // key hints
-        let key_hints = KeyHint::from_mode(&self.state.mode);
-        let key_hint_line: Line = Line::from(
-            key_hints
-                .into_iter()
-                .flat_map(Into::<Vec<Span>>::into)
-                .collect::<Vec<Span>>(),
-        );
-        frame.render_widget(Paragraph::new(key_hint_line), bottom_panel);
+        frame.render_stateful_widget(key_hints::Pane::default(), bottom_panel, &mut self.state);
 
         // input bar (if adding something)
         if self.state.mode == Mode::AddingItem {

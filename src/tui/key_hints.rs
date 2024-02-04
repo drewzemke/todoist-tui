@@ -1,9 +1,10 @@
+use super::app_state::{AppState, Mode};
 use ratatui::{
+    prelude::{Buffer, Rect},
     style::{Color, Modifier, Style},
-    text::Span,
+    text::{Line, Span},
+    widgets::{Paragraph, StatefulWidget, Widget},
 };
-
-use super::app_state::Mode;
 
 pub struct KeyHint {
     pub key: String,
@@ -52,5 +53,25 @@ impl<'a> From<KeyHint> for Vec<Span<'a>> {
             Span::styled(hint.action, hint_style.fg(Color::Gray)),
             Span::raw("  "),
         ]
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Pane<'a> {
+    marker: std::marker::PhantomData<AppState<'a>>,
+}
+
+impl<'a> StatefulWidget for Pane<'a> {
+    type State = AppState<'a>;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let key_hints = KeyHint::from_mode(&state.mode);
+        let key_hint_line: Line = Line::from(
+            key_hints
+                .into_iter()
+                .flat_map(Into::<Vec<Span>>::into)
+                .collect::<Vec<Span>>(),
+        );
+        Paragraph::new(key_hint_line).render(area, buf);
     }
 }
