@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// An id for an item, which is really just `String`.
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Id(String);
 
 impl From<String> for Id {
@@ -42,6 +42,7 @@ pub struct Item {
     pub parent_id: Option<Id>,
     pub child_order: i32,
     pub section_id: Option<section::Id>,
+    pub collapsed: bool,
 }
 
 impl Default for Item {
@@ -55,6 +56,7 @@ impl Default for Item {
             parent_id: None,
             child_order: 0,
             section_id: None,
+            collapsed: false,
         }
     }
 }

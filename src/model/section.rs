@@ -5,7 +5,7 @@ use super::project;
 
 /// An id for a section, which is really just `String`.
 // TODO: this is identical code to two other modules, is there a way to combine?
-#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct Id(String);
 
 impl From<String> for Id {
@@ -27,7 +27,7 @@ impl From<&Id> for Id {
 }
 
 /// Represents a section inside a project.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct Section {
     pub id: Id,
     pub name: String,
@@ -66,5 +66,17 @@ impl Default for Section {
             project_id: "".into(),
             section_order: 0,
         }
+    }
+}
+
+impl PartialOrd for Section {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Section {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.section_order.cmp(&other.section_order)
     }
 }

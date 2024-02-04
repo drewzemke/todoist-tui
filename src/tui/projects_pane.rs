@@ -5,16 +5,20 @@ use ratatui::{
 };
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
-use crate::model::project::{Id, Project};
+use crate::model::project::{Id as ProjectId, Project};
 
 pub struct ProjectTree<'a> {
-    items: Vec<TreeItem<'a, Id>>,
-    state: TreeState<Id>,
+    tree_items: Vec<TreeItem<'a, ProjectId>>,
+    state: TreeState<ProjectId>,
+    default_project_id: ProjectId,
 }
 
 impl<'a> ProjectTree<'a> {
+    //  HACK?
+    /// # Panics
+    /// If the list of projects is empty.
     pub fn new(projects: &'_ [Project]) -> Self {
-        let items = Self::build_tree(projects, None);
+        let tree_items = Self::build_tree(projects, None);
         let mut state = TreeState::default();
         for project in projects {
             if !project.collapsed {
@@ -25,14 +29,22 @@ impl<'a> ProjectTree<'a> {
         // Select the first project in the list.
         // TODO: Add a check that this is actually the Inbox project?
         //       Or persist which project was selected on last close?
-        if let Some(project) = projects.first() {
-            state.select(vec![project.id.clone()]);
-        }
+        let first_project = projects
+            .first()
+            .expect("There should always be at least one project.");
+        state.select(vec![first_project.id.clone()]);
 
-        Self { items, state }
+        Self {
+            tree_items,
+            state,
+            default_project_id: first_project.id.clone(),
+        }
     }
 
-    fn build_tree<'b>(projects: &'_ [Project], parent_id: Option<&Id>) -> Vec<TreeItem<'b, Id>> {
+    fn build_tree<'b>(
+        projects: &'_ [Project],
+        parent_id: Option<&ProjectId>,
+    ) -> Vec<TreeItem<'b, ProjectId>> {
         projects
             .iter()
             .filter_map(|project| {
@@ -50,8 +62,12 @@ impl<'a> ProjectTree<'a> {
             .collect()
     }
 
-    pub fn selected(&self) -> Option<Id> {
-        self.state.selected().into_iter().last()
+    pub fn selected(&self) -> ProjectId {
+        self.state
+            .selected()
+            .into_iter()
+            .last()
+            .unwrap_or(self.default_project_id.clone())
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
@@ -59,8 +75,8 @@ impl<'a> ProjectTree<'a> {
             KeyCode::Char('\n' | ' ') => self.state.toggle_selected(),
             KeyCode::Left => self.state.key_left(),
             KeyCode::Right => self.state.key_right(),
-            KeyCode::Down => self.state.key_down(&self.items),
-            KeyCode::Up => self.state.key_up(&self.items),
+            KeyCode::Down => self.state.key_down(&self.tree_items),
+            KeyCode::Up => self.state.key_up(&self.tree_items),
             _ => {}
         }
     }
@@ -69,8 +85,8 @@ impl<'a> ProjectTree<'a> {
     ///
     /// # Panics
     /// If the model contains projects with duplicate ids
-    pub fn tree(&self, focused: bool) -> Tree<'a, Id> {
-        Tree::new(self.items.clone())
+    pub fn tree(&self, focused: bool) -> Tree<'a, ProjectId> {
+        Tree::new(self.tree_items.clone())
             .expect("Project ids must be unique")
             .block(
                 Block::default()
@@ -90,7 +106,7 @@ impl<'a> ProjectTree<'a> {
             )
     }
 
-    pub fn state_mut(&mut self) -> &mut TreeState<Id> {
+    pub fn state_mut(&mut self) -> &mut TreeState<ProjectId> {
         &mut self.state
     }
 }

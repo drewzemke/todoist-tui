@@ -19,10 +19,11 @@ use std::{
 
 pub mod app;
 mod item_input;
-pub mod key_hints;
-pub mod lists;
+mod items_pane;
+mod key_hints;
 mod projects_pane;
-pub mod ui;
+mod section_widget;
+mod ui;
 
 /// # Errors
 /// Returns an error if something goes wrong during the TUI setup, execution, or teardown.

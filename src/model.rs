@@ -111,6 +111,11 @@ impl Model {
         self.projects.iter().collect()
     }
 
+    #[must_use]
+    pub fn project_with_id(&self, id: &project::Id) -> Option<&Project> {
+        self.projects.iter().find(|project| project.id == *id)
+    }
+
     pub fn update(&mut self, response: Response) {
         self.sync_token = response.sync_token;
 

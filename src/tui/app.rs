@@ -1,7 +1,7 @@
 use super::{
     item_input::ItemInput,
+    items_pane::{ItemTree, ItemTreeState},
     key_hints::KeyHint,
-    lists::{item_list, State as ListState},
     projects_pane::ProjectTree,
     ui::centered_rect,
 };
@@ -28,23 +28,33 @@ pub struct App<'a> {
     pub model: &'a mut Model,
     pub mode: Mode,
     item_input: ItemInput,
-    item_list_state: ListState,
     project_tree: ProjectTree<'a>,
+    item_tree: ItemTree<'a>,
+    item_tree_state: ItemTreeState,
 }
 
 impl<'a> App<'a> {
     /// # Panics
     /// If the model contains projects or items with duplicate ids
     pub fn new(model: &'a mut Model) -> Self {
-        let num_items = model.get_inbox_items(false).len();
         let project_tree = ProjectTree::new(&model.projects);
+        let selected_project_id = project_tree.selected();
+        let selected_project = model
+            .project_with_id(&selected_project_id)
+            .expect("Could not find project with id {selected_project_id}");
+
+        let item_tree = ItemTree::new(&model.items, &model.sections, selected_project);
+        let mut item_tree_state =
+            ItemTreeState::new(&model.items, &model.sections, selected_project);
+        item_tree_state.set_focused(true);
 
         Self {
             mode: Mode::SelectingItems,
             model,
             item_input: ItemInput::new(Local::now().date_naive()),
-            item_list_state: ListState::with_length(num_items),
             project_tree,
+            item_tree,
+            item_tree_state,
         }
     }
 
@@ -56,25 +66,28 @@ impl<'a> App<'a> {
         }
     }
 
-    fn selected_project(&self) -> Option<&Project> {
-        self.project_tree.selected().and_then(|project_id| {
-            self.model
-                .projects
-                .iter()
-                .find(|project| project.id == project_id)
-        })
+    fn selected_project(&self) -> &Project {
+        let selected_project_id = self.project_tree.selected();
+        self.model
+            .project_with_id(&selected_project_id)
+            .expect("Could not find project with id {selected_project_id}")
+    }
+
+    fn selected_item(&self) -> Option<&Item> {
+        self.item_tree_state
+            .selected()
+            .and_then(|item_id| self.model.items.iter().find(|item| item.id == item_id))
     }
 
     /// Updates the inner state of model after the model changes.
     pub fn update_state(&mut self) {
-        let num_items = self.items_in_selected_project().len();
-        self.item_list_state.set_length(num_items);
-    }
-
-    fn items_in_selected_project(&self) -> Vec<&Item> {
-        self.selected_project()
-            .map(|project| self.model.get_items_in_project(&project.id))
-            .unwrap_or_default()
+        let selected_project = &self.selected_project();
+        let item_tree = ItemTree::new(&self.model.items, &self.model.sections, selected_project);
+        let mut item_tree_state =
+            ItemTreeState::new(&self.model.items, &self.model.sections, selected_project);
+        item_tree_state.set_focused(self.mode == Mode::SelectingItems);
+        self.item_tree = item_tree;
+        self.item_tree_state = item_tree_state;
     }
 
     /// Manages how the whole app reacts to an individual user keypress.
@@ -87,19 +100,19 @@ impl<'a> App<'a> {
                 KeyCode::Char('q') => {
                     self.mode = Mode::Exiting;
                 }
-                KeyCode::Up | KeyCode::Down => self.item_list_state.handle_key(key),
-                KeyCode::Tab | KeyCode::Left => {
+                KeyCode::Tab => {
                     self.mode = Mode::SelectingProjects;
+                    self.item_tree_state.set_focused(false);
                 }
                 KeyCode::Char(' ') => {
-                    if let Some(selected_index) = self.item_list_state.selected_index() {
-                        let items = self.items_in_selected_project();
-                        let item = items[selected_index];
+                    if let Some(item) = self.selected_item() {
                         self.model.mark_item(&item.id.clone(), !item.checked);
                         self.update_state();
                     }
                 }
-                _ => {}
+                _ => {
+                    self.item_tree_state.handle_key(key);
+                }
             },
             Mode::SelectingProjects => {
                 match key.code {
@@ -111,6 +124,7 @@ impl<'a> App<'a> {
                     }
                     KeyCode::Tab => {
                         self.mode = Mode::SelectingItems;
+                        self.item_tree_state.set_focused(true);
                     }
                     _ => {
                         self.project_tree.handle_key(key);
@@ -124,17 +138,14 @@ impl<'a> App<'a> {
                     self.item_input.reset();
                 }
                 KeyCode::Enter => {
-                    let selected_project = self.selected_project();
-                    if let Some(selected_project) = selected_project {
-                        let project_id = selected_project.id.clone();
+                    let project_id = self.selected_project().id.clone();
 
-                        let (content, due_date) = self.item_input.get_new_item();
+                    let (content, due_date) = self.item_input.get_new_item();
 
-                        self.model.add_item(content.trim(), project_id, due_date);
-                        self.update_state();
-                        self.mode = Mode::SelectingItems;
-                        self.item_input.reset();
-                    }
+                    self.model.add_item(content.trim(), project_id, due_date);
+                    self.update_state();
+                    self.mode = Mode::SelectingItems;
+                    self.item_input.reset();
                 }
                 _ => {
                     self.item_input.handle_event(&Event::Key(key));
@@ -166,17 +177,11 @@ impl<'a> App<'a> {
         frame.render_stateful_widget(project_tree, main_left, project_state);
 
         // item list
-        let items = self.items_in_selected_project();
-        let item_list = item_list(
-            &items,
-            self.selected_project()
-                .map_or("", |project| &project.name[..]),
-            &self.model.sections,
-            self.mode == Mode::SelectingItems,
+        frame.render_stateful_widget(
+            self.item_tree.clone(),
+            main_right,
+            &mut self.item_tree_state,
         );
-        // TODO: make trees for items, then resolve this borrow issue
-        // frame.render_stateful_widget(item_list, main_right, &mut self.item_list_state.state);
-        frame.render_widget(item_list, main_right);
 
         // key hints
         let key_hints = KeyHint::from_mode(&self.mode);
