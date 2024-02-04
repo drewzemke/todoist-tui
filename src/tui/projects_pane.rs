@@ -1,19 +1,20 @@
+use super::app_state::AppState;
+use crate::model::project::{Id as ProjectId, Project};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
+    prelude::{Buffer, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders},
+    widgets::{Block, Borders, StatefulWidget},
 };
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
-use crate::model::project::{Id as ProjectId, Project};
-
-pub struct ProjectTree<'a> {
+pub struct ProjectsState<'a> {
     tree_items: Vec<TreeItem<'a, ProjectId>>,
     state: TreeState<ProjectId>,
     default_project_id: ProjectId,
 }
 
-impl<'a> ProjectTree<'a> {
+impl<'a> ProjectsState<'a> {
     //  HACK?
     /// # Panics
     /// If the list of projects is empty.
@@ -80,13 +81,25 @@ impl<'a> ProjectTree<'a> {
             _ => {}
         }
     }
+}
+
+#[derive(Debug, Default)]
+pub struct ProjectsPane<'a> {
+    marker: std::marker::PhantomData<AppState<'a>>,
+}
+
+impl<'a> StatefulWidget for ProjectsPane<'a> {
+    type State = AppState<'a>;
 
     /// Renders the app state into a terminal frame.
     ///
     /// # Panics
     /// If the model contains projects with duplicate ids
-    pub fn tree(&self, focused: bool) -> Tree<'a, ProjectId> {
-        Tree::new(self.tree_items.clone())
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        // TODO: move into state
+        let focused = false;
+
+        let tree = Tree::new(state.projects.tree_items.clone())
             .expect("Project ids must be unique")
             .block(
                 Block::default()
@@ -103,10 +116,8 @@ impl<'a> ProjectTree<'a> {
                     .bg(Color::White)
                     .fg(Color::Black)
                     .add_modifier(Modifier::BOLD),
-            )
-    }
+            );
 
-    pub fn state_mut(&mut self) -> &mut TreeState<ProjectId> {
-        &mut self.state
+        tree.render(area, buf, &mut state.projects.state);
     }
 }

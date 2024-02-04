@@ -18,6 +18,7 @@ use std::{
 };
 
 pub mod app;
+mod app_state;
 mod item_input;
 mod items_pane;
 mod key_hints;

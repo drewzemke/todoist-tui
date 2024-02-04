@@ -1,8 +1,9 @@
 use super::{
+    app_state::AppState,
     item_input::ItemInput,
     items_pane::{ItemTree, ItemTreeState},
     key_hints::KeyHint,
-    projects_pane::ProjectTree,
+    projects_pane::{ProjectsPane, ProjectsState},
     ui::centered_rect,
 };
 use crate::model::{item::Item, project::Project, Model};
@@ -28,17 +29,17 @@ pub struct App<'a> {
     pub model: &'a mut Model,
     pub mode: Mode,
     item_input: ItemInput,
-    project_tree: ProjectTree<'a>,
     item_tree: ItemTree<'a>,
     item_tree_state: ItemTreeState,
+    state: AppState<'a>,
 }
 
 impl<'a> App<'a> {
     /// # Panics
     /// If the model contains projects or items with duplicate ids
     pub fn new(model: &'a mut Model) -> Self {
-        let project_tree = ProjectTree::new(&model.projects);
-        let selected_project_id = project_tree.selected();
+        let project_state = ProjectsState::new(&model.projects);
+        let selected_project_id = project_state.selected();
         let selected_project = model
             .project_with_id(&selected_project_id)
             .expect("Could not find project with id {selected_project_id}");
@@ -48,13 +49,17 @@ impl<'a> App<'a> {
             ItemTreeState::new(&model.items, &model.sections, selected_project);
         item_tree_state.set_focused(true);
 
+        let state = AppState {
+            projects: ProjectsState::new(&model.projects),
+        };
+
         Self {
             mode: Mode::SelectingItems,
             model,
             item_input: ItemInput::new(Local::now().date_naive()),
-            project_tree,
             item_tree,
             item_tree_state,
+            state,
         }
     }
 
@@ -67,7 +72,7 @@ impl<'a> App<'a> {
     }
 
     fn selected_project(&self) -> &Project {
-        let selected_project_id = self.project_tree.selected();
+        let selected_project_id = self.state.projects.selected();
         self.model
             .project_with_id(&selected_project_id)
             .expect("Could not find project with id {selected_project_id}")
@@ -127,7 +132,7 @@ impl<'a> App<'a> {
                         self.item_tree_state.set_focused(true);
                     }
                     _ => {
-                        self.project_tree.handle_key(key);
+                        self.state.projects.handle_key(key);
                     }
                 }
                 self.update_state();
@@ -171,10 +176,8 @@ impl<'a> App<'a> {
         let main_left = main_panel_layout[0];
         let main_right = main_panel_layout[1];
 
-        // project list
-        let project_tree = self.project_tree.tree(self.mode == Mode::SelectingProjects);
-        let project_state = self.project_tree.state_mut();
-        frame.render_stateful_widget(project_tree, main_left, project_state);
+        // projects pane
+        frame.render_stateful_widget(ProjectsPane::default(), main_left, &mut self.state);
 
         // item list
         frame.render_stateful_widget(
