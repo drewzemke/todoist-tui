@@ -24,7 +24,7 @@ pub struct State<'a> {
 
 impl<'a> State<'a> {
     pub fn new(items: &'_ [Item], sections: &'_ [Section], project: &Project) -> Self {
-        let mut section_states: Vec<_> = sections
+        let mut section_state_pairs: Vec<_> = sections
             .iter()
             .filter(|section| section.project_id == project.id)
             .map(|section| {
@@ -33,7 +33,7 @@ impl<'a> State<'a> {
                     .filter(|item| item.section_id.as_ref().is_some_and(|id| id == &section.id))
                     .collect();
                 let section_state = SectionState::new(Some(section), &items_in_section);
-                section_state
+                (Some(section), section_state)
             })
             .collect();
 
@@ -43,14 +43,14 @@ impl<'a> State<'a> {
             .filter(|item| item.section_id.is_none())
             .collect();
         let section_state = SectionState::new(None, &items_in_no_section);
-        section_states.insert(0, section_state);
+        section_state_pairs.insert(0, (None, section_state));
 
-        // section_states.sort_unstable_by(|(section_a, _), (section_b, _)| section_a.cmp(section_b));
+        section_state_pairs.sort_unstable_by(|(a, _), (b, _)| a.cmp(b));
 
-        // let section_widgets = section_widgets
-        //     .into_iter()
-        //     .map(|(section, widget)| (section.map(|s| s.id.clone()), widget))
-        //     .collect();
+        let section_states = section_state_pairs
+            .into_iter()
+            .map(|(_, state)| state)
+            .collect();
 
         Self {
             current_section_id: None,
