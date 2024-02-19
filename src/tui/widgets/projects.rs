@@ -66,7 +66,7 @@ impl<'a> State<'a> {
         }
     }
 
-    pub fn selected(&self) -> ProjectId {
+    pub fn selected_id(&self) -> ProjectId {
         self.tree
             .selected()
             .into_iter()

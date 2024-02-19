@@ -2,12 +2,9 @@ use super::{
     app_state::{AppState, Mode},
     item_input::ItemInput,
     ui::centered_rect,
-    widgets::{
-        items_pane::{ItemTree, ItemTreeState},
-        key_hints, projects,
-    },
+    widgets::{items, key_hints, projects},
 };
-use crate::model::{item::Item, project::Project, Model};
+use crate::model::{project::Project, Model};
 use chrono::{Local, NaiveDate};
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
@@ -20,36 +17,30 @@ pub struct App<'a> {
     pub model: &'a mut Model,
     pub state: AppState<'a>,
     item_input: ItemInput,
-    item_tree: ItemTree<'a>,
-    item_tree_state: ItemTreeState,
 }
 
 impl<'a> App<'a> {
     /// # Panics
     /// If the model contains projects or items with duplicate ids
     pub fn new(model: &'a mut Model) -> Self {
-        let project_state = projects::State::new(&model.projects);
-        let selected_project_id = project_state.selected();
+        let projects_state = projects::State::new(&model.projects);
+        let selected_project_id = projects_state.selected_id();
         let selected_project = model
             .project_with_id(&selected_project_id)
             .expect("Could not find project with id {selected_project_id}");
 
-        let item_tree = ItemTree::new(&model.items, &model.sections, selected_project);
-        let mut item_tree_state =
-            ItemTreeState::new(&model.items, &model.sections, selected_project);
-        item_tree_state.set_focused(true);
+        let items_state = items::State::new(&model.items, &model.sections, selected_project);
 
         let state = AppState {
-            projects: projects::State::new(&model.projects),
+            projects: projects_state,
             mode: Mode::SelectingItems,
+            items: items_state,
         };
 
         Self {
             model,
-            item_input: ItemInput::new(Local::now().date_naive()),
-            item_tree,
-            item_tree_state,
             state,
+            item_input: ItemInput::new(Local::now().date_naive()),
         }
     }
 
@@ -62,27 +53,19 @@ impl<'a> App<'a> {
     }
 
     fn selected_project(&self) -> &Project {
-        let selected_project_id = self.state.projects.selected();
+        let selected_project_id = self.state.projects.selected_id();
         self.model
             .project_with_id(&selected_project_id)
             .expect("Could not find project with id {selected_project_id}")
     }
 
-    fn selected_item(&self) -> Option<&Item> {
-        self.item_tree_state
-            .selected()
-            .and_then(|item_id| self.model.items.iter().find(|item| item.id == item_id))
-    }
-
     /// Updates the inner state of model after the model changes.
     pub fn update_state(&mut self) {
         let selected_project = &self.selected_project();
-        let item_tree = ItemTree::new(&self.model.items, &self.model.sections, selected_project);
-        let mut item_tree_state =
-            ItemTreeState::new(&self.model.items, &self.model.sections, selected_project);
-        item_tree_state.set_focused(self.state.mode == Mode::SelectingItems);
-        self.item_tree = item_tree;
-        self.item_tree_state = item_tree_state;
+        let item_state =
+            items::State::new(&self.model.items, &self.model.sections, selected_project);
+
+        self.state.items = item_state;
     }
 
     /// Manages how the whole app reacts to an individual user keypress.
@@ -98,16 +81,16 @@ impl<'a> App<'a> {
                 }
                 KeyCode::Tab => {
                     self.state.mode = Mode::SelectingProjects;
-                    self.item_tree_state.set_focused(false);
                 }
                 KeyCode::Char(' ') => {
-                    if let Some(item) = self.selected_item() {
-                        self.model.mark_item(&item.id.clone(), !item.checked);
+                    if let Some(item_id) = self.state.items.selected_item_id() {
+                        // FIXME: toggle, don't always set to true
+                        self.model.mark_item(&item_id.clone(), true);
                         self.update_state();
                     }
                 }
                 _ => {
-                    self.item_tree_state.handle_key(key);
+                    self.state.items.handle_key(key);
                 }
             },
             Mode::SelectingProjects => {
@@ -120,7 +103,6 @@ impl<'a> App<'a> {
                     }
                     KeyCode::Tab => {
                         self.state.mode = Mode::SelectingItems;
-                        self.item_tree_state.set_focused(true);
                     }
                     _ => {
                         self.state.projects.handle_key(key);
@@ -171,11 +153,7 @@ impl<'a> App<'a> {
         frame.render_stateful_widget(projects::Widget::default(), main_left, &mut self.state);
 
         // item list
-        frame.render_stateful_widget(
-            self.item_tree.clone(),
-            main_right,
-            &mut self.item_tree_state,
-        );
+        frame.render_stateful_widget(items::Widget::default(), main_right, &mut self.state);
 
         // key hints
         frame.render_stateful_widget(key_hints::Widget::default(), bottom_panel, &mut self.state);

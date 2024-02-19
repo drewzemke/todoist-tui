@@ -115,13 +115,13 @@ pub mod item_tests {
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("--date-time-override").arg("2021-10-06T08:00:00");
-        cmd.arg("add").arg("new todo!");
+        cmd.arg("add").arg("new todo");
         cmd.arg("--due").arg("tomorrow");
         cmd.arg("--no-sync");
 
         // check output
         cmd.assert()
-            .stdout(predicates::str::contains("'new todo!' added"))
+            .stdout(predicates::str::contains("'new todo' added"))
             .code(0);
 
         // check that a command was created in the data file with the correct content

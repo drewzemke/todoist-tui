@@ -104,8 +104,6 @@ pub mod tui_tests {
         TuiTester::new(app, 40, 10)?
             .expect_visible("Todo 1")?
             .expect_visible("Todo 2")?
-            // down arrow to select the first todo
-            .type_key(KeyCode::Down)
             // space to complete that item
             .type_key(KeyCode::Char(' '))
             .expect_visible("✓ Todo 1")?
@@ -204,7 +202,7 @@ pub mod tui_tests {
 
         let app = App::new(&mut model);
 
-        TuiTester::new(app, 60, 10)?
+        TuiTester::new(app, 70, 10)?
             .expect_visible("Todo 1")?
             .expect_visible("2011-11-12")?
             .expect_visible("Todo 2")?

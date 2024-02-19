@@ -1,4 +1,4 @@
-use super::widgets::projects;
+use super::widgets::{items, projects};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Mode {
@@ -9,6 +9,7 @@ pub enum Mode {
 }
 
 pub struct AppState<'a> {
-    pub projects: projects::State<'a>,
     pub mode: Mode,
+    pub projects: projects::State<'a>,
+    pub items: items::State<'a>,
 }
