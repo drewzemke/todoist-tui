@@ -1,6 +1,6 @@
 [package]
 name = "tod"
-author = "Drew Zemke"
+authors = ["Drew Zemke"]
 version = "0.1.0"
 edition = "2021"
 
@@ -18,6 +18,7 @@ smart-date = { git = "https://github.com/drewzemke/smart-date.git" }
 tokio = { version = "1.28.2", features = ["full"] }
 toml = "0.7.5"
 tui-input = "0.8.0"
+tui-scrollview = "0.3.1"
 tui-tree-widget = "0.17.0"
 uuid = { version = "1.4.0", features = ["v4", "serde"] }
 

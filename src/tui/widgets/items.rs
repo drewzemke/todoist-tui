@@ -9,10 +9,12 @@ use crate::{
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
+    layout::{Position, Size},
     prelude::{Buffer, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     widgets::{Block, Borders, StatefulWidget, Widget as RatatuiWidget},
 };
+use tui_scrollview::{ScrollView, ScrollViewState};
 
 #[derive(Debug, Clone)]
 pub struct State<'a> {
@@ -20,6 +22,8 @@ pub struct State<'a> {
 
     /// `None` indicates that the set of items with no section is the "section" that's currently selected
     pub current_section_id: Option<SectionId>,
+
+    scroll: ScrollViewState,
 }
 
 impl<'a> State<'a> {
@@ -55,6 +59,7 @@ impl<'a> State<'a> {
         Self {
             current_section_id: None,
             section_states,
+            scroll: ScrollViewState::default(),
         }
     }
 
@@ -67,6 +72,26 @@ impl<'a> State<'a> {
         self.section_states
             .iter()
             .find(|section_state| section_state.id == self.current_section_id)
+    }
+
+    fn recompute_scroll_offset(&mut self) {
+        #[allow(clippy::cast_possible_truncation)]
+        let offset = self
+            .current_section_state()
+            .map_or(0, |s| s.offset() as u16);
+
+        let mut offset = self
+            .section_states
+            .iter()
+            .take_while(|section| section.id != self.current_section_id)
+            .map(SectionState::height)
+            .sum::<u16>()
+            + offset;
+
+        // HACK: (maybe?) don't scroll the view until the selection has moved down some
+        offset = offset.saturating_sub(5);
+
+        self.scroll.set_offset(Position::new(0, offset));
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
@@ -91,6 +116,8 @@ impl<'a> State<'a> {
                 .map(|x| x.id.clone())
                 .unwrap_or_default();
         }
+
+        self.recompute_scroll_offset();
     }
 }
 
@@ -103,12 +130,13 @@ impl<'a> StatefulWidget for Widget<'a> {
     type State = AppState<'a>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let constraints =
-            Constraint::from_lengths(state.items.section_states.iter().map(SectionState::height));
+        let heights = state.items.section_states.iter().map(SectionState::height);
+        let total_height = heights.clone().sum::<u16>();
+        let constraints = Constraint::from_mins(heights);
 
         let block = Block::default()
             .borders(Borders::ALL)
-            // .title(state.projects.selected().clone())
+            .title("Tasks")
             .border_style(Style::default().fg(if state.mode == Mode::SelectingItems {
                 Color::Yellow
             } else {
@@ -122,11 +150,14 @@ impl<'a> StatefulWidget for Widget<'a> {
             inner_area
         };
 
-        // split the remaining area into pieces
+        // render the rest of this widget into the buffer of a scroll view
+        let mut scrollview = ScrollView::new(Size::new(area.width, total_height));
+
+        // split into pieces based on section heights
         let layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints(constraints)
-            .split(area);
+            .split(scrollview.area());
 
         // render inside each piece
         state
@@ -140,10 +171,13 @@ impl<'a> StatefulWidget for Widget<'a> {
                 if let Some(rect) = layout.get(index) {
                     SectionWidget::new(state.items.current_section_id.clone()).render(
                         *rect,
-                        buf,
+                        scrollview.buf_mut(),
                         section_state,
                     );
                 }
             });
+
+        // render the whole deal into the scrollview
+        scrollview.render(area, buf, &mut state.items.scroll);
     }
 }

@@ -1925,6 +1925,7 @@ dependencies = [
  "tokio",
  "toml",
  "tui-input",
+ "tui-scrollview",
  "tui-tree-widget",
  "uuid",
  "wiremock",
@@ -2057,6 +2058,16 @@ checksum = "b3e785f863a3af4c800a2a669d0b64c879b538738e352607e2624d03f868dc01"
 dependencies = [
  "crossterm",
  "unicode-width",
+]
+
+[[package]]
+name = "tui-scrollview"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "361182212649ce307e364d2646ab482560ee54e8b48431975ba0e6550ec7e394"
+dependencies = [
+ "indoc",
+ "ratatui",
 ]
 
 [[package]]

@@ -78,6 +78,14 @@ impl<'a> State<'a> {
             + if self.name.is_some() { 2 } else { 1 }
     }
 
+    pub fn offset(&'a self) -> usize {
+        self.tree
+            .flatten(&self.items)
+            .iter()
+            .position(|item| item.identifier.last() == self.selected_item_id().as_ref())
+            .unwrap_or(0)
+    }
+
     pub fn selected_item_id(&self) -> Option<ItemId> {
         self.tree.selected().last().cloned()
     }
