@@ -1,0 +1,18 @@
+on:
+  # runs on any push that does NOT contain a tag
+  push:
+    tags-ignore:
+      - '*'
+
+  workflow_dispatch:
+
+name: Build & Test
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+
+  tests:
+      uses: ./.github/workflows/tests.yml 
+
