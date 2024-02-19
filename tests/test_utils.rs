@@ -101,8 +101,8 @@ mod tui_tester {
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
     use ratatui::{backend::TestBackend, buffer::Cell, Terminal};
     use std::fmt::Write;
-    use tod::tui::app::App;
-    use tod::tui::app_state::Mode;
+    use todoist_tui::tui::app::App;
+    use todoist_tui::tui::app_state::Mode;
 
     // TODO: make this generic? just for fun I guess
     pub struct TuiTester<'a> {

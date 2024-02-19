@@ -2,7 +2,7 @@
 use anyhow::Result;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use tod::{
+use todoist_tui::{
     cli::{self, Args},
     storage::{
         config_manager::ConfigManager, file_manager::FileManager, model_manager::ModelManager,

@@ -1,8 +1,12 @@
 [package]
-name = "tod"
+name = "todoist-tui"
 authors = ["Drew Zemke"]
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "A Todoist TUI and CLI app."
+repository = "https://github.com/drewzemke/todoist-tui"
+readme = "README.md"
 
 [dependencies]
 anyhow = "1.0.75"
@@ -14,7 +18,7 @@ ratatui = { version = "0.26", features = ["all-widgets"] }
 reqwest = { version = "0.11.18", features = ["blocking", "json"] }
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.99"
-smart-date = { git = "https://github.com/drewzemke/smart-date.git" }
+smart-date = { git = "https://github.com/drewzemke/smart-date.git", version = "0.1.0" }
 tokio = { version = "1.28.2", features = ["full"] }
 toml = "0.7.5"
 tui-input = "0.8.0"

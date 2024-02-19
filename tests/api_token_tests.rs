@@ -18,7 +18,7 @@ pub mod api_token_tests {
         let server_url = "fake/server/url";
 
         // run the thing
-        let mut cmd = assert_cmd::Command::cargo_bin("tod")
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist-tui")
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
@@ -43,7 +43,7 @@ pub mod api_token_tests {
         let server_url = "fake/server/url";
 
         // run the thing
-        let mut cmd = assert_cmd::Command::cargo_bin("tod")
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist-tui")
             .map_err(|err| format!("Could not run app using 'assert_cmd': {err:?}"))?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);

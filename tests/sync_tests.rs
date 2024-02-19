@@ -6,7 +6,7 @@ pub mod sync_tests {
     use anyhow::Result;
     use assert_cmd::Command;
     use std::{collections::HashMap, fs};
-    use tod::{
+    use todoist_tui::{
         model::{
             command::{self, AddItemArgs, Args},
             item::Item,
@@ -56,7 +56,7 @@ pub mod sync_tests {
         let server_url = mock_server.uri();
 
         // run the thing
-        let mut cmd = Command::cargo_bin("tod")?;
+        let mut cmd = Command::cargo_bin("todoist-tui")?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("sync");
@@ -138,7 +138,7 @@ pub mod sync_tests {
             .await;
         let server_url = mock_server.uri();
 
-        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist-tui")?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("sync");
@@ -223,7 +223,7 @@ pub mod sync_tests {
             .await;
         let server_url = mock_server.uri();
 
-        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist-tui")?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("sync").arg("--incremental");

@@ -9,7 +9,7 @@ pub mod tui_tests {
     use anyhow::Result;
     use chrono::{NaiveDate, NaiveDateTime};
     use crossterm::event::KeyCode;
-    use tod::{
+    use todoist_tui::{
         model::{
             due_date::{Due, DueDate},
             item::Item,

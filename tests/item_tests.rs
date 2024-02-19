@@ -6,7 +6,7 @@ pub mod item_tests {
     use anyhow::Result;
     use chrono::Datelike;
     use std::fs;
-    use tod::model::{
+    use todoist_tui::model::{
         due_date::{Due, DueDate},
         item::Item,
         user::User,
@@ -39,7 +39,7 @@ pub mod item_tests {
         // accidental calls to the real api
         let server_url = "fake/server/url";
 
-        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist-tui")?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("list");
@@ -73,7 +73,7 @@ pub mod item_tests {
         // accidental calls to the real api
         let server_url = "fake/server/url";
 
-        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist-tui")?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("list");
@@ -111,7 +111,7 @@ pub mod item_tests {
         // accidental calls to the real api
         let server_url = "fake/server/url";
 
-        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist-tui")?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("--date-time-override").arg("2021-10-06T08:00:00");
@@ -172,7 +172,7 @@ pub mod item_tests {
         // accidental calls to the real api
         let server_url = "fake/server/url";
 
-        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist-tui")?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("complete").arg("1");
@@ -193,7 +193,7 @@ pub mod item_tests {
         assert_eq!(model.commands[0].request_type, "item_complete");
 
         // the completed todo should no longer appear when running 'list'
-        let mut cmd = assert_cmd::Command::cargo_bin("tod")?;
+        let mut cmd = assert_cmd::Command::cargo_bin("todoist-tui")?;
         cmd.arg("--local-dir-override").arg(mock_data_dir);
         cmd.arg("--sync-url-override").arg(server_url);
         cmd.arg("list");
