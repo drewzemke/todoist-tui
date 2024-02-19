@@ -2,8 +2,12 @@
 
 ## Installation
 
-I'll eventually get around to hosting this on crates.io. For now, you can clone the repo 
-and manually build if you have the Rust toolchain installed.
+You'll need the Rust toolchain installed. You can install directly from [crates.io](https://crates.io/crates/todoist-tui):
+```shell
+cargo install todoist-tui
+```
+ 
+Or clone the repo and build it yourself. 
 
 ```shell
 git clone git@github.com:drewzemke/todoist-tui.git

@@ -1720,8 +1720,8 @@ checksum = "e6ecd384b10a64542d77071bd64bd7b231f4ed5940fba55e98c3de13824cf3d7"
 
 [[package]]
 name = "smart-date"
-version = "0.1.0"
-source = "git+https://github.com/drewzemke/smart-date.git#cf716b457f17f86fb83f1201019c0acf6c49d126"
+version = "0.1.1"
+source = "git+https://github.com/drewzemke/smart-date.git#1d4db8cd049d99bc5b2f4b08852647b24c74b8ab"
 dependencies = [
  "chrono",
  "nom",
@@ -1906,7 +1906,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "todoist-tui"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "assert_cmd",
