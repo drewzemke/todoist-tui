@@ -1,22 +1,42 @@
 on:
   # runs on any push that contains a tag
   push:
-    tags-ignore:
+    branches:
+      - trunk
+    tags:
       - '*'
 
   workflow_dispatch:
 
-name: CD
+name: Build and Deploy
 
 jobs:
 
-  tests:
+  build: 
     name: Build & Test
-    uses: ./.github/workflows/tests.yml 
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Install stable toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Build
+      run: cargo build --verbose
+
+    - name: Run tests
+      run: cargo test --verbose
  
   publish: 
+
     name: Publish to Crates.io
-    needs: ['tests']
+    needs: ['build']
     runs-on: ubuntu-latest
 
     steps:
