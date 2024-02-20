@@ -1,11 +1,14 @@
-name: Build and Test
+name: Build & Test (Callable)
 
-on: [workflow_call]  # allow this workflow to be called from other workflows
+on: 
+  - workflow_call  # allows this workflow to be called from other workflows
+  - workflow_dispatch
 
 jobs:
   
   build:
 
+    name: Build & Test
     runs-on: ubuntu-latest
 
     steps:

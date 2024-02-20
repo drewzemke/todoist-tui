@@ -6,15 +6,16 @@ on:
 
   workflow_dispatch:
 
-name: Deploy
+name: CD
 
 jobs:
 
   tests:
-      uses: ./.github/workflows/tests.yml 
+    name: Build & Test
+    uses: ./.github/workflows/tests.yml 
  
   publish: 
-    name: Publish to crates.io
+    name: Publish to Crates.io
     needs: ['tests']
     runs-on: ubuntu-latest
 
