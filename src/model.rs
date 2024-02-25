@@ -111,6 +111,17 @@ impl Model {
         self.projects.iter().collect()
     }
 
+    /// # Panics
+    /// If there is no inbox project in the model.
+    #[must_use]
+    pub fn inbox_project(&self) -> &Project {
+        let inbox_id = &self.user.inbox_project_id;
+        self.projects
+            .iter()
+            .find(|project| project.id == *inbox_id)
+            .expect("there should always be an inbox project")
+    }
+
     #[must_use]
     pub fn project_with_id(&self, id: &project::Id) -> Option<&Project> {
         self.projects.iter().find(|project| project.id == *id)
