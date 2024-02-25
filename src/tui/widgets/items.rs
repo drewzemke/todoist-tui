@@ -105,8 +105,10 @@ impl<'a> State<'a> {
         let at_boundary = current_section_state.handle_key(key);
         if at_boundary {
             let next_index = match key.code {
-                KeyCode::Down => current_index.saturating_add(1),
-                KeyCode::Up => current_index.saturating_sub(1),
+                KeyCode::Down => current_index
+                    .saturating_add(1)
+                    .min(self.section_states.len() - 1),
+                KeyCode::Up => current_index.saturating_sub(1).max(0),
                 _ => 0,
             };
 
