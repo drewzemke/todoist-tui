@@ -57,12 +57,12 @@ impl<'a> From<KeyHint> for Vec<Span<'a>> {
 }
 
 #[derive(Debug, Default)]
-pub struct Widget<'a> {
-    marker: std::marker::PhantomData<AppState<'a>>,
+pub struct Widget {
+    marker: std::marker::PhantomData<AppState>,
 }
 
-impl<'a> StatefulWidget for Widget<'a> {
-    type State = AppState<'a>;
+impl StatefulWidget for Widget {
+    type State = AppState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let key_hints = KeyHint::from_mode(&state.mode);

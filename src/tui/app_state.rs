@@ -8,8 +8,8 @@ pub enum Mode {
     Exiting,
 }
 
-pub struct AppState<'a> {
+pub struct AppState {
     pub mode: Mode,
     pub projects: projects::State,
-    pub items: items::State<'a>,
+    pub items: items::State,
 }

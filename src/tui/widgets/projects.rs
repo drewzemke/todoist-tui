@@ -58,12 +58,12 @@ impl State {
 }
 
 #[derive(Debug, Default)]
-pub struct Widget<'a, 'b> {
-    marker: std::marker::PhantomData<(&'b mut AppState<'a>, &'b mut Model)>,
+pub struct Widget<'a> {
+    marker: std::marker::PhantomData<(&'a mut AppState, &'a mut Model)>,
 }
 
-impl<'a: 'b, 'b> StatefulWidget for Widget<'a, 'b> {
-    type State = (&'b mut AppState<'a>, &'b mut Model);
+impl<'a> StatefulWidget for Widget<'a> {
+    type State = (&'a mut AppState, &'a mut Model);
 
     /// Renders the app state into a terminal frame.
     ///

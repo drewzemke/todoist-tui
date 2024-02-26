@@ -15,7 +15,7 @@ use ratatui::{
 /// Manages the UI state and data model
 pub struct App<'a> {
     pub model: &'a mut Model,
-    pub state: AppState<'a>,
+    pub state: AppState,
     item_input: ItemInput,
 }
 
@@ -25,8 +25,7 @@ impl<'a> App<'a> {
     pub fn new(model: &'a mut Model) -> Self {
         let projects_state = projects::State::new(&model.inbox_project().id);
 
-        let default_project = model.inbox_project();
-        let items_state = items::State::new(&model.items, &model.sections, default_project);
+        let items_state = items::State::default();
 
         let state = AppState {
             projects: projects_state,
@@ -58,11 +57,7 @@ impl<'a> App<'a> {
 
     /// Updates the inner state of model after the model changes.
     pub fn update_state(&mut self) {
-        let selected_project = self
-            .selected_project()
-            .unwrap_or_else(|| self.model.inbox_project());
-        let item_state =
-            items::State::new(&self.model.items, &self.model.sections, selected_project);
+        let item_state = items::State::default();
 
         self.state.items = item_state;
     }
@@ -160,7 +155,11 @@ impl<'a> App<'a> {
         );
 
         // item list
-        frame.render_stateful_widget(items::Widget::default(), main_right, &mut self.state);
+        frame.render_stateful_widget(
+            items::Widget::default(),
+            main_right,
+            &mut (&mut self.state, self.model),
+        );
 
         // key hints
         frame.render_stateful_widget(key_hints::Widget::default(), bottom_panel, &mut self.state);

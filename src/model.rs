@@ -98,10 +98,42 @@ impl Model {
     }
 
     #[must_use]
-    pub fn get_items_in_project(&self, project_id: &project::Id) -> Vec<&Item> {
+    pub fn items_in_project(&self, project_id: &project::Id) -> Vec<&Item> {
         self.items
             .iter()
             .filter(|item| item.project_id == *project_id)
+            .collect()
+    }
+
+    #[must_use]
+    pub fn sections_and_items_in_project(
+        &self,
+        project_id: &project::Id,
+    ) -> Vec<(Option<&Section>, Vec<&Item>)> {
+        let mut sections: Vec<Option<&Section>> = self
+            .sections
+            .iter()
+            .filter(|section| section.project_id == *project_id)
+            .map(Some)
+            .collect();
+        sections.insert(0, None);
+        sections.sort_unstable();
+
+        sections
+            .into_iter()
+            .map(|section| {
+                let items_in_section: Vec<_> = self
+                    .items
+                    .iter()
+                    .filter(|item| item.project_id == *project_id)
+                    .filter(|item| match (&item.section_id, section) {
+                        (Some(id), Some(section)) => section.id == *id,
+                        (None, None) => true,
+                        _ => false,
+                    })
+                    .collect();
+                (section, items_in_section)
+            })
             .collect()
     }
 

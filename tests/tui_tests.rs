@@ -61,7 +61,7 @@ pub mod tui_tests {
             .expect_not_visible("New Todo")?
             .expect_visible("new todo text")?;
 
-        assert_eq!(model.get_items_in_project(&project_id).len(), 3);
+        assert_eq!(model.items_in_project(&project_id).len(), 3);
 
         Ok(())
     }

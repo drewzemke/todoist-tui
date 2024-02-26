@@ -1,9 +1,7 @@
-use crate::{
-    model::{
-        item::{Id as ItemId, Item},
-        section::{Id as SectionId, Section},
-    },
-    tui::app_state::AppState,
+use crate::model::{
+    item::{Id as ItemId, Item},
+    section::{Id as SectionId, Section},
+    Model,
 };
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
@@ -17,36 +15,37 @@ use tui_tree_widget::{Tree, TreeItem, TreeState};
 // pub type State = TreeState<ItemId>;
 
 #[derive(Debug, Clone)]
-pub struct State<'a> {
+pub struct State {
     pub id: Option<SectionId>,
     name: Option<String>,
     tree: TreeState<ItemId>,
-    items: Vec<TreeItem<'a, ItemId>>,
 }
 
-impl<'a> State<'a> {
+impl State {
     pub fn new(section: Option<&Section>, items: &'_ [&Item]) -> Self {
         let tree_items = Self::build_tree(items, None);
 
-        let mut state = TreeState::default();
+        let mut tree_state = TreeState::default();
 
         for item in items {
             if !item.collapsed {
-                state.open(vec![item.id.clone()]);
+                tree_state.open(vec![item.id.clone()]);
             }
         }
 
-        state.select_first(&tree_items);
+        tree_state.select_first(&tree_items);
 
         Self {
             id: section.map(|s| s.id.clone()),
             name: section.map(|s| s.name.clone()),
-            items: tree_items,
-            tree: state,
+            tree: tree_state,
         }
     }
 
-    fn build_tree<'b>(items: &'_ [&Item], parent_id: Option<&ItemId>) -> Vec<TreeItem<'b, ItemId>> {
+    pub fn build_tree<'b>(
+        items: &'_ [&Item],
+        parent_id: Option<&ItemId>,
+    ) -> Vec<TreeItem<'b, ItemId>> {
         items
             .iter()
             .filter_map(|item| {
@@ -67,20 +66,20 @@ impl<'a> State<'a> {
 
     /// Computes the height (in lines) of this widget
     #[allow(clippy::cast_possible_truncation)]
-    pub fn height(&'a self) -> u16 {
+    pub fn height(&self, tree_items: &[TreeItem<'_, ItemId>]) -> u16 {
         // add one line for the section title if it's there and one for a spacer after the section
         (self
             .tree
-            .flatten(&self.items)
+            .flatten(tree_items)
             .iter()
             .map(|f| f.item.height() as u16)
             .sum::<u16>())
             + if self.name.is_some() { 2 } else { 1 }
     }
 
-    pub fn offset(&'a self) -> usize {
+    pub fn offset(&self, tree_items: &[TreeItem<'_, ItemId>]) -> usize {
         self.tree
-            .flatten(&self.items)
+            .flatten(tree_items)
             .iter()
             .position(|item| item.identifier.last() == self.selected_item_id().as_ref())
             .unwrap_or(0)
@@ -90,7 +89,7 @@ impl<'a> State<'a> {
         self.tree.selected().last().cloned()
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent) -> bool {
+    pub fn handle_key(&mut self, key: KeyEvent, tree_items: &[TreeItem<'_, ItemId>]) -> bool {
         match key.code {
             KeyCode::Char('\n' | ' ') => {
                 self.tree.toggle_selected();
@@ -99,7 +98,7 @@ impl<'a> State<'a> {
             KeyCode::Right => self.tree.key_right(),
             KeyCode::Down => {
                 let before = self.tree.selected();
-                self.tree.key_down(&self.items);
+                self.tree.key_down(tree_items);
                 let after = self.tree.selected();
 
                 if before == after {
@@ -108,7 +107,7 @@ impl<'a> State<'a> {
             }
             KeyCode::Up => {
                 let before = self.tree.selected();
-                self.tree.key_up(&self.items);
+                self.tree.key_up(tree_items);
                 let after = self.tree.selected();
 
                 if before == after {
@@ -122,27 +121,31 @@ impl<'a> State<'a> {
 }
 
 #[derive(Debug, Default)]
-pub struct Widget<'a> {
+pub struct Widget<'a, 'b> {
     /// The id of the section currently focused by the app
     focused_id: Option<SectionId>,
 
-    marker: std::marker::PhantomData<AppState<'a>>,
+    /// The items in this section, as
+    tree_items: &'b [TreeItem<'a, ItemId>],
+
+    marker: std::marker::PhantomData<(&'b mut State, &'b mut Model)>,
 }
 
-impl<'a> Widget<'a> {
-    pub fn new(id: Option<SectionId>) -> Self {
+impl<'a, 'b> Widget<'a, 'b> {
+    pub fn new(focused_id: Option<SectionId>, tree_items: &'b [TreeItem<'a, ItemId>]) -> Self {
         Self {
-            focused_id: id,
+            focused_id,
+            tree_items,
             marker: std::marker::PhantomData,
         }
     }
 }
 
-impl<'a> StatefulWidget for Widget<'a> {
-    type State = State<'a>;
+impl<'a, 'b: 'a> StatefulWidget for Widget<'a, 'b> {
+    type State = (&'b State, &'b mut Model);
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let mut tree = Tree::new(state.items.clone()).expect("Item ids must be unique");
+    fn render(self, area: Rect, buf: &mut Buffer, (state, _): &mut Self::State) {
+        let mut tree = Tree::new(self.tree_items.to_vec()).expect("Item ids must be unique");
 
         // only highlight things in the currently-focused section
         if state.id == self.focused_id {
@@ -171,7 +174,7 @@ impl<'a> StatefulWidget for Widget<'a> {
             area
         };
 
-        StatefulWidget::render(tree, tree_area, buf, &mut state.tree);
+        StatefulWidget::render(tree, tree_area, buf, &mut state.tree.clone());
     }
 }
 
