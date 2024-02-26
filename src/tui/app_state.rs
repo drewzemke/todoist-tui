@@ -10,6 +10,6 @@ pub enum Mode {
 
 pub struct AppState<'a> {
     pub mode: Mode,
-    pub projects: projects::State<'a>,
+    pub projects: projects::State,
     pub items: items::State<'a>,
 }

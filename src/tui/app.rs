@@ -23,13 +23,10 @@ impl<'a> App<'a> {
     /// # Panics
     /// If the model contains projects or items with duplicate ids
     pub fn new(model: &'a mut Model) -> Self {
-        let projects_state = projects::State::new(&model.projects);
-        let selected_project_id = projects_state.selected_id();
-        let selected_project = model
-            .project_with_id(&selected_project_id)
-            .expect("Could not find project with id {selected_project_id}");
+        let projects_state = projects::State::new(&model.inbox_project().id);
 
-        let items_state = items::State::new(&model.items, &model.sections, selected_project);
+        let default_project = model.inbox_project();
+        let items_state = items::State::new(&model.items, &model.sections, default_project);
 
         let state = AppState {
             projects: projects_state,
@@ -52,16 +49,18 @@ impl<'a> App<'a> {
         }
     }
 
-    fn selected_project(&self) -> &Project {
-        let selected_project_id = self.state.projects.selected_id();
-        self.model
-            .project_with_id(&selected_project_id)
-            .expect("Could not find project with id {selected_project_id}")
+    fn selected_project(&self) -> Option<&Project> {
+        self.state
+            .projects
+            .selected_id()
+            .and_then(|id| self.model.project_with_id(&id))
     }
 
     /// Updates the inner state of model after the model changes.
     pub fn update_state(&mut self) {
-        let selected_project = &self.selected_project();
+        let selected_project = self
+            .selected_project()
+            .unwrap_or_else(|| self.model.inbox_project());
         let item_state =
             items::State::new(&self.model.items, &self.model.sections, selected_project);
 
@@ -116,7 +115,11 @@ impl<'a> App<'a> {
                     self.item_input.reset();
                 }
                 KeyCode::Enter => {
-                    let project_id = self.selected_project().id.clone();
+                    let project_id = self
+                        .selected_project()
+                        .unwrap_or_else(|| self.model.inbox_project())
+                        .id
+                        .clone();
 
                     let (content, due_date) = self.item_input.get_new_item();
 
@@ -150,7 +153,11 @@ impl<'a> App<'a> {
         let main_right = main_panel_layout[1];
 
         // projects pane
-        frame.render_stateful_widget(projects::Widget::default(), main_left, &mut self.state);
+        frame.render_stateful_widget(
+            projects::Widget::default(),
+            main_left,
+            &mut (&mut self.state, self.model),
+        );
 
         // item list
         frame.render_stateful_widget(items::Widget::default(), main_right, &mut self.state);

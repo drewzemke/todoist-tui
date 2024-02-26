@@ -1,5 +1,8 @@
 use crate::{
-    model::project::{Id as ProjectId, Project},
+    model::{
+        project::{Id as ProjectId, Project},
+        Model,
+    },
     tui::app_state::{AppState, Mode},
 };
 use crossterm::event::{KeyCode, KeyEvent};
@@ -10,17 +13,63 @@ use ratatui::{
 };
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
-pub struct State<'a> {
-    tree_items: Vec<TreeItem<'a, ProjectId>>,
+pub struct State {
+    /// Records which project's are expanded and which is selected.
     tree: TreeState<ProjectId>,
-    default_project_id: ProjectId,
+
+    /// When a key is pressed, we wait until the next render to process it.
+    /// It's stored here in between key press and processing.
+    pending_key_event: Option<KeyEvent>,
+
+    /// Used to indicate that we need to do some state setup during render.
+    first_render: bool,
 }
 
-impl<'a> State<'a> {
-    //  HACK?
+impl State {
+    pub fn new(default_project_id: &ProjectId) -> Self {
+        let mut tree = TreeState::default();
+        tree.select(vec![default_project_id.clone()]);
+
+        Self {
+            tree,
+            pending_key_event: None,
+            first_render: true,
+        }
+    }
+
+    pub fn selected_id(&self) -> Option<ProjectId> {
+        self.tree.selected().into_iter().last()
+    }
+
+    pub fn handle_key(&mut self, key: KeyEvent) {
+        self.pending_key_event = Some(key);
+    }
+
+    fn handle_key_later(&mut self, key: KeyEvent, tree_items: &[TreeItem<'_, ProjectId>]) {
+        match key.code {
+            KeyCode::Char('\n' | ' ') => self.tree.toggle_selected(),
+            KeyCode::Left => self.tree.key_left(),
+            KeyCode::Right => self.tree.key_right(),
+            KeyCode::Down => self.tree.key_down(tree_items),
+            KeyCode::Up => self.tree.key_up(tree_items),
+            _ => {}
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Widget<'a, 'b> {
+    marker: std::marker::PhantomData<(&'b mut AppState<'a>, &'b mut Model)>,
+}
+
+impl<'a: 'b, 'b> StatefulWidget for Widget<'a, 'b> {
+    type State = (&'b mut AppState<'a>, &'b mut Model);
+
+    /// Renders the app state into a terminal frame.
+    ///
     /// # Panics
-    /// If the list of projects is empty.
-    pub fn new(projects: &'_ [Project]) -> Self {
+    /// If the model contains projects with duplicate ids
+    fn render(self, area: Rect, buf: &mut Buffer, (app_state, model): &mut Self::State) {
         // recursive helper function
         fn build_tree<'b>(
             projects: &'_ [Project],
@@ -43,65 +92,27 @@ impl<'a> State<'a> {
                 .collect()
         }
 
-        let tree_items = build_tree(projects, None);
-        let mut state = TreeState::default();
-        for project in projects {
-            if !project.collapsed {
-                state.open(vec![project.id.clone()]);
+        if app_state.projects.first_render {
+            app_state.projects.first_render = false;
+
+            for project in &mut model.projects {
+                if !project.collapsed {
+                    app_state.projects.tree.open(vec![project.id.clone()]);
+                }
             }
         }
 
-        // Select the first project in the list.
-        // TODO: Add a check that this is actually the Inbox project?
-        //       Or persist which project was selected on last close?
-        let first_project = projects
-            .first()
-            .expect("There should always be at least one project.");
-        state.select(vec![first_project.id.clone()]);
+        let tree_items = build_tree(&model.projects, None);
 
-        Self {
-            tree_items,
-            tree: state,
-            default_project_id: first_project.id.clone(),
+        // now that we've made the tree items, we can handle key events, some of which require
+        // the tree_items to be present.
+        if let Some(key) = app_state.projects.pending_key_event.take() {
+            app_state.projects.handle_key_later(key, &tree_items);
         }
-    }
 
-    pub fn selected_id(&self) -> ProjectId {
-        self.tree
-            .selected()
-            .into_iter()
-            .last()
-            .unwrap_or(self.default_project_id.clone())
-    }
+        let focused = app_state.mode == Mode::SelectingProjects;
 
-    pub fn handle_key(&mut self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Char('\n' | ' ') => self.tree.toggle_selected(),
-            KeyCode::Left => self.tree.key_left(),
-            KeyCode::Right => self.tree.key_right(),
-            KeyCode::Down => self.tree.key_down(&self.tree_items),
-            KeyCode::Up => self.tree.key_up(&self.tree_items),
-            _ => {}
-        }
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct Widget<'a> {
-    marker: std::marker::PhantomData<AppState<'a>>,
-}
-
-impl<'a> StatefulWidget for Widget<'a> {
-    type State = AppState<'a>;
-
-    /// Renders the app state into a terminal frame.
-    ///
-    /// # Panics
-    /// If the model contains projects with duplicate ids
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let focused = state.mode == Mode::SelectingProjects;
-
-        let tree = Tree::new(state.projects.tree_items.clone())
+        let tree = Tree::new(tree_items)
             .expect("Project ids must be unique")
             .block(
                 Block::default()
@@ -120,6 +131,6 @@ impl<'a> StatefulWidget for Widget<'a> {
                     .add_modifier(Modifier::BOLD),
             );
 
-        tree.render(area, buf, &mut state.projects.tree);
+        tree.render(area, buf, &mut app_state.projects.tree);
     }
 }
